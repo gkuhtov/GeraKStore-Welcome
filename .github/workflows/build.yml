@@ -1,0 +1,38 @@
+name: GeraKStore Welcome Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build on macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Show environment
+        run: |
+          echo "macOS:"
+          sw_vers
+
+          echo
+          echo "Xcode:"
+          xcodebuild -version
+
+          echo
+          echo "Clang:"
+          clang --version
+
+      - name: Check project
+        run: |
+          echo "Repository:"
+          pwd
+
+          echo
+          echo "Files:"
+          find . -not -path './.git/*' -type f | sort
