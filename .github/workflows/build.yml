@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build on macOS
+    name: Build GeraKStore Welcome
     runs-on: macos-latest
 
     steps:
@@ -19,17 +19,62 @@ jobs:
         run: |
           echo "macOS:"
           sw_vers
+
           echo
           echo "Xcode:"
           xcodebuild -version
-          echo
-          echo "Clang:"
-          clang --version
 
-      - name: Check project
-        run: |
-          echo "Repository:"
-          pwd
           echo
-          echo "Files:"
-          find . -not -path "./.git/*" -type f | sort
+          echo "SDK:"
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Prepare build directory
+        run: |
+          rm -rf build
+          mkdir -p build
+
+      - name: Compile GeraKStore Welcome
+        run: |
+          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          clang \
+            -arch arm64 \
+            -isysroot "$SDK_PATH" \
+            -miphoneos-version-min=14.0 \
+            -fobjc-arc \
+            -I GeraKStoreWelcome/Headers \
+            -c GeraKStoreWelcome/Source/GeraKStoreWelcome.m \
+            -o build/GeraKStoreWelcome.o
+
+      - name: Link dylib
+        run: |
+          SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          clang \
+            -arch arm64 \
+            -isysroot "$SDK_PATH" \
+            -miphoneos-version-min=14.0 \
+            -dynamiclib \
+            build/GeraKStoreWelcome.o \
+            -framework Foundation \
+            -o build/GeraKStoreWelcome.dylib
+
+      - name: Verify build
+        run: |
+          echo "Build directory:"
+          find build -maxdepth 2 -type f -print
+
+          echo
+          echo "Dylib information:"
+          file build/GeraKStoreWelcome.dylib
+
+          echo
+          echo "Dylib size:"
+          ls -lh build/GeraKStoreWelcome.dylib
+
+      - name: Upload dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeraKStoreWelcome-dylib
+          path: build/GeraKStoreWelcome.dylib
+          if-no-files-found: error
