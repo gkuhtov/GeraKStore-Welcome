@@ -7,8 +7,14 @@
     "borderColor": "#FFFFFF55"
   },
   "logo": {
-    "size": 190,
-    "topOffset": 24
+    "size": 210,
+    "topOffset": 24,
+    "pulseEnabled": true,
+    "pulseScale": 1.08,
+    "pulseFirstDuration": 0.12,
+    "pulseSecondDuration": 0.10,
+    "pulsePause": 0.80,
+    "hapticEnabled": true
   },
   "colors": {
     "backgroundGradient": [

@@ -10,6 +10,7 @@
 @property (nonatomic, strong) CALayer *starsLayer;
 @property (nonatomic, strong) UIVisualEffectView *glassView;
 @property (nonatomic, strong) UIImageView *logoView;
+@property (nonatomic, strong) UIImpactFeedbackGenerator *logoHapticGenerator;
 
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
@@ -286,6 +287,8 @@
     if (self.config.appConfig.allowSkip) {
         [self setupDontShowAgain:text.dontShowAgain];
     }
+
+    [self setupLogoPulse];
 }
 
 #pragma mark - Logo
@@ -645,6 +648,141 @@
         CGAffineTransformIdentity;
 
     } completion:nil];
+}
+
+#pragma mark - Logo Pulse
+
+- (void)setupLogoPulse {
+
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+
+    if (!appearance.logoPulseEnabled || !self.logoView) {
+        return;
+    }
+
+    if (appearance.logoHapticEnabled) {
+        self.logoHapticGenerator =
+            [[UIImpactFeedbackGenerator alloc]
+                initWithStyle:UIImpactFeedbackStyleMedium];
+
+        [self.logoHapticGenerator prepare];
+    }
+
+    self.logoView.layer.anchorPoint =
+        CGPointMake(0.5, 0.5);
+
+    CGFloat scale =
+        MAX(1.0, appearance.logoPulseScale);
+
+    CGFloat firstDuration =
+        MAX(0.05, appearance.logoPulseFirstDuration);
+
+    CGFloat secondDuration =
+        MAX(0.05, appearance.logoPulseSecondDuration);
+
+    CGFloat pause =
+        MAX(0.05, appearance.logoPulsePause);
+
+    CAKeyframeAnimation *pulse =
+        [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+
+    pulse.values = @[
+        @1.0,
+        @(scale),
+        @1.0,
+        @(scale * 0.985),
+        @1.0
+    ];
+
+    pulse.keyTimes = @[
+        @0.0,
+        @0.16,
+        @0.32,
+        @0.45,
+        @1.0
+    ];
+
+    pulse.duration =
+        firstDuration +
+        secondDuration +
+        pause;
+
+    pulse.timingFunctions = @[
+        [CAMediaTimingFunction
+            functionWithName:kCAMediaTimingFunctionEaseOut],
+
+        [CAMediaTimingFunction
+            functionWithName:kCAMediaTimingFunctionEaseInEaseOut],
+
+        [CAMediaTimingFunction
+            functionWithName:kCAMediaTimingFunctionEaseOut],
+
+        [CAMediaTimingFunction
+            functionWithName:kCAMediaTimingFunctionEaseIn]
+    ];
+
+    pulse.repeatCount = HUGE_VALF;
+    pulse.removedOnCompletion = NO;
+    pulse.fillMode = kCAFillModeBoth;
+
+    [self.logoView.layer addAnimation:pulse
+                               forKey:@"GeraKStoreWelcomeLogoPulse"];
+
+    if (appearance.logoHapticEnabled) {
+        [self performLogoHapticLoopWithFirstDuration:firstDuration
+                                      secondDuration:secondDuration
+                                               pause:pause];
+    }
+}
+
+- (void)performLogoHapticLoopWithFirstDuration:(NSTimeInterval)firstDuration
+                                secondDuration:(NSTimeInterval)secondDuration
+                                         pause:(NSTimeInterval)pause {
+
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+
+    if (!appearance.logoPulseEnabled ||
+        !appearance.logoHapticEnabled) {
+        return;
+    }
+
+    [self.logoHapticGenerator impactOccurred];
+
+    [self.logoHapticGenerator prepare];
+
+    dispatch_after(
+        dispatch_time(
+            DISPATCH_TIME_NOW,
+            (int64_t)((firstDuration + secondDuration) *
+                      NSEC_PER_SEC)),
+        dispatch_get_main_queue(), ^{
+
+            if (!self.logoView ||
+                !self.config.appearanceConfig.logoPulseEnabled ||
+                !self.config.appearanceConfig.logoHapticEnabled) {
+                return;
+            }
+
+            [self.logoHapticGenerator impactOccurred];
+            [self.logoHapticGenerator prepare];
+
+            dispatch_after(
+                dispatch_time(
+                    DISPATCH_TIME_NOW,
+                    (int64_t)(pause * NSEC_PER_SEC)),
+                dispatch_get_main_queue(), ^{
+
+                    if (!self.logoView ||
+                        !self.config.appearanceConfig.logoPulseEnabled ||
+                        !self.config.appearanceConfig.logoHapticEnabled) {
+                        return;
+                    }
+
+                    [self performLogoHapticLoopWithFirstDuration:firstDuration
+                                                  secondDuration:secondDuration
+                                                           pause:pause];
+                });
+        });
 }
 
 #pragma mark - Colors
