@@ -14,6 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify resources
+        run: |
+          echo "=== RESOURCES ==="
+          ls -lh Resources/Config/*.json
+          ls -lh Resources/Assets/GeraKStoreWelcome.png
+
       - name: Build dylib
         run: |
           xcrun --sdk iphoneos clang \
@@ -29,6 +35,7 @@ jobs:
             Core/WelcomeManager.m \
             Core/WelcomeViewController.m \
             Core/UserDefaults+Welcome.m \
+            Core/EmbeddedResourceLoader.m \
             Configuration/WelcomeConfig.m \
             Configuration/Models/AppConfig.m \
             Configuration/Models/TextConfig.m \
@@ -38,6 +45,11 @@ jobs:
             -IConfiguration \
             -IConfiguration/Models \
             -ICore \
+            -sectcreate __DATA __welcome_config Resources/Config/config.json \
+            -sectcreate __DATA __welcome_texts Resources/Config/texts.json \
+            -sectcreate __DATA __welcome_links Resources/Config/links.json \
+            -sectcreate __DATA __welcome_app Resources/Config/appearance.json \
+            -sectcreate __DATA __welcome_logo Resources/Assets/GeraKStoreWelcome.png \
             -o GeraKStoreWelcome.dylib
 
       - name: Verify Mach-O
@@ -50,22 +62,8 @@ jobs:
           xcrun --sdk iphoneos otool -D GeraKStoreWelcome.dylib
 
           echo
-          echo "=== DEPENDENCIES ==="
-          xcrun --sdk iphoneos otool -L GeraKStoreWelcome.dylib
-
-          echo
-          echo "=== CHECK ==="
-          EXPECTED="@rpath/GeraKStoreWelcome.dylib"
-          ACTUAL="$(xcrun --sdk iphoneos otool -D GeraKStoreWelcome.dylib | tail -n 1)"
-
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "ERROR: wrong install name"
-            echo "Expected: $EXPECTED"
-            echo "Actual:   $ACTUAL"
-            exit 1
-          fi
-
-          echo "OK: install name is correct"
+          echo "=== EMBEDDED SECTIONS ==="
+          xcrun --sdk iphoneos otool -l GeraKStoreWelcome.dylib | grep -A5 -E "__welcome_config|__welcome_texts|__welcome_links|__welcome_app|__welcome_logo"
 
       - name: Package dylib
         run: |

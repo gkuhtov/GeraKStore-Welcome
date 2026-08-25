@@ -299,11 +299,22 @@
     self.logoView.clipsToBounds = NO;
     self.logoView.layer.cornerRadius = 28.0;
 
+    /*
+     * First try the external resource from the IPA.
+     * If it is unavailable, use the embedded PNG from the dylib.
+     */
     UIImage *logo =
-    [UIImage imageNamed:@"GeraKStoreWelcome.png"];
+        [UIImage imageNamed:@"GeraKStoreWelcome.png"];
 
     if (!logo) {
         logo = [UIImage imageNamed:@"GeraKStoreWelcome"];
+    }
+
+    if (!logo) {
+        logo =
+            [EmbeddedResourceLoader
+                imageForResource:@"GeraKStoreWelcome"
+                extension:@"png"];
     }
 
     if (!logo) {
