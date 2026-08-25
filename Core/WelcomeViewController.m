@@ -11,6 +11,8 @@
 @property (nonatomic, strong) UIVisualEffectView *glassView;
 @property (nonatomic, strong) UIImageView *logoView;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *logoHapticGenerator;
+@property (nonatomic, assign) BOOL logoPulseActive;
+@property (nonatomic, assign) NSUInteger logoPulseGeneration;
 
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
@@ -591,6 +593,8 @@
 
 - (void)continuePressed {
 
+    [self stopLogoPulse];
+
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
@@ -654,13 +658,23 @@
 
 - (void)setupLogoPulse {
 
-    AppearanceConfig *appearance = self.config.appearanceConfig;
+    AppearanceConfig *appearance =
+        self.config.appearanceConfig;
 
-    if (!appearance.logoPulseEnabled || !self.logoView) {
+    if (!appearance.logoPulseEnabled ||
+        !self.logoView) {
+
         return;
     }
 
+    self.logoPulseActive = YES;
+    self.logoPulseGeneration++;
+
+    NSUInteger generation =
+        self.logoPulseGeneration;
+
     if (appearance.logoHapticEnabled) {
+
         self.logoHapticGenerator =
             [[UIImpactFeedbackGenerator alloc]
                 initWithStyle:UIImpactFeedbackStyleMedium];
@@ -725,67 +739,136 @@
     pulse.removedOnCompletion = NO;
     pulse.fillMode = kCAFillModeBoth;
 
-    [self.logoView.layer addAnimation:pulse
-                               forKey:@"GeraKStoreWelcomeLogoPulse"];
+    [self.logoView.layer
+        addAnimation:pulse
+        forKey:@"GeraKStoreWelcomeLogoPulse"];
 
     if (appearance.logoHapticEnabled) {
+
         [self performLogoHapticLoopWithFirstDuration:firstDuration
                                       secondDuration:secondDuration
-                                               pause:pause];
+                                               pause:pause
+                                          generation:generation];
     }
 }
 
 - (void)performLogoHapticLoopWithFirstDuration:(NSTimeInterval)firstDuration
                                 secondDuration:(NSTimeInterval)secondDuration
-                                         pause:(NSTimeInterval)pause {
+                                         pause:(NSTimeInterval)pause
+                                    generation:(NSUInteger)generation {
 
-    AppearanceConfig *appearance = self.config.appearanceConfig;
+    if (!self.logoPulseActive ||
+        generation != self.logoPulseGeneration ||
+        !self.logoView ||
+        !self.logoHapticGenerator) {
 
-    if (!appearance.logoPulseEnabled ||
-        !appearance.logoHapticEnabled) {
         return;
     }
 
-    [self.logoHapticGenerator impactOccurred];
+    AppearanceConfig *appearance =
+        self.config.appearanceConfig;
 
+    if (!appearance.logoPulseEnabled ||
+        !appearance.logoHapticEnabled) {
+
+        return;
+    }
+
+    /*
+     * Первый удар.
+     */
+    [self.logoHapticGenerator impactOccurred];
     [self.logoHapticGenerator prepare];
 
+    /*
+     * Второй удар.
+     */
     dispatch_after(
         dispatch_time(
             DISPATCH_TIME_NOW,
-            (int64_t)((firstDuration + secondDuration) *
-                      NSEC_PER_SEC)),
+            (int64_t)(firstDuration * NSEC_PER_SEC)
+        ),
         dispatch_get_main_queue(), ^{
 
-            if (!self.logoView ||
-                !self.config.appearanceConfig.logoPulseEnabled ||
-                !self.config.appearanceConfig.logoHapticEnabled) {
+            if (!self.logoPulseActive ||
+                generation != self.logoPulseGeneration ||
+                !self.logoView ||
+                !self.logoHapticGenerator) {
+
+                return;
+            }
+
+            AppearanceConfig *appearance =
+                self.config.appearanceConfig;
+
+            if (!appearance.logoPulseEnabled ||
+                !appearance.logoHapticEnabled) {
+
                 return;
             }
 
             [self.logoHapticGenerator impactOccurred];
             [self.logoHapticGenerator prepare];
 
+            /*
+             * Пауза до следующего сердцебиения.
+             */
             dispatch_after(
                 dispatch_time(
                     DISPATCH_TIME_NOW,
-                    (int64_t)(pause * NSEC_PER_SEC)),
+                    (int64_t)(
+                        secondDuration * NSEC_PER_SEC +
+                        pause * NSEC_PER_SEC
+                    )
+                ),
                 dispatch_get_main_queue(), ^{
 
-                    if (!self.logoView ||
-                        !self.config.appearanceConfig.logoPulseEnabled ||
-                        !self.config.appearanceConfig.logoHapticEnabled) {
+                    if (!self.logoPulseActive ||
+                        generation != self.logoPulseGeneration ||
+                        !self.logoView ||
+                        !self.logoHapticGenerator) {
+
                         return;
                     }
 
                     [self performLogoHapticLoopWithFirstDuration:firstDuration
                                                   secondDuration:secondDuration
-                                                           pause:pause];
+                                                           pause:pause
+                                                      generation:generation];
                 });
         });
 }
 
+- (void)stopLogoPulse {
+
+    /*
+     * Инвалидируем все уже запланированные dispatch_after.
+     */
+    self.logoPulseActive = NO;
+    self.logoPulseGeneration++;
+
+    /*
+     * Останавливаем визуальную анимацию.
+     */
+    [self.logoView.layer
+        removeAnimationForKey:@"GeraKStoreWelcomeLogoPulse"];
+
+    /*
+     * Освобождаем генератор вибрации.
+     */
+    [self.logoHapticGenerator prepare];
+    self.logoHapticGenerator = nil;
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+
+    [super viewDidDisappear:animated];
+
+    [self stopLogoPulse];
+}
+
 #pragma mark - Colors
+
 
 - (UIColor *)colorFromHex:(NSString *)hex {
 
