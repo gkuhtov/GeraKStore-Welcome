@@ -677,7 +677,7 @@
 
         self.logoHapticGenerator =
             [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:UIImpactFeedbackStyleMedium];
+                initWithStyle:UIImpactFeedbackStyleHeavy];
 
         [self.logoHapticGenerator prepare];
     }
@@ -697,6 +697,15 @@
     CGFloat pause =
         MAX(0.05, appearance.logoPulsePause);
 
+    /*
+     * Визуальный импульс:
+     *
+     * 0.00  исходный размер
+     * 0.16  первый пик
+     * 0.32  возврат
+     * 0.45  второй пик
+     * 1.00  возврат
+     */
     CAKeyframeAnimation *pulse =
         [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
 
@@ -745,17 +754,13 @@
 
     if (appearance.logoHapticEnabled) {
 
-        [self performLogoHapticLoopWithFirstDuration:firstDuration
-                                      secondDuration:secondDuration
-                                               pause:pause
-                                          generation:generation];
+        [self performLogoHapticLoopWithDuration:pulse.duration
+                                      generation:generation];
     }
 }
 
-- (void)performLogoHapticLoopWithFirstDuration:(NSTimeInterval)firstDuration
-                                secondDuration:(NSTimeInterval)secondDuration
-                                         pause:(NSTimeInterval)pause
-                                    generation:(NSUInteger)generation {
+- (void)performLogoHapticLoopWithDuration:(NSTimeInterval)duration
+                                generation:(NSUInteger)generation {
 
     if (!self.logoPulseActive ||
         generation != self.logoPulseGeneration ||
@@ -775,18 +780,26 @@
     }
 
     /*
-     * Первый удар.
+     * Первый удар точно соответствует
+     * первому визуальному пику.
      */
-    [self.logoHapticGenerator impactOccurred];
-    [self.logoHapticGenerator prepare];
+    NSTimeInterval firstImpactDelay =
+        duration * 0.16;
 
     /*
-     * Второй удар.
+     * Второй удар точно соответствует
+     * второму визуальному пику.
+     */
+    NSTimeInterval secondImpactDelay =
+        duration * 0.45;
+
+    /*
+     * Первый импульс.
      */
     dispatch_after(
         dispatch_time(
             DISPATCH_TIME_NOW,
-            (int64_t)(firstDuration * NSEC_PER_SEC)
+            (int64_t)(firstImpactDelay * NSEC_PER_SEC)
         ),
         dispatch_get_main_queue(), ^{
 
@@ -811,15 +824,16 @@
             [self.logoHapticGenerator prepare];
 
             /*
-             * Пауза до следующего сердцебиения.
+             * Второй импульс.
              */
+            NSTimeInterval delayBetweenImpacts =
+                secondImpactDelay - firstImpactDelay;
+
             dispatch_after(
                 dispatch_time(
                     DISPATCH_TIME_NOW,
-                    (int64_t)(
-                        secondDuration * NSEC_PER_SEC +
-                        pause * NSEC_PER_SEC
-                    )
+                    (int64_t)(delayBetweenImpacts *
+                              NSEC_PER_SEC)
                 ),
                 dispatch_get_main_queue(), ^{
 
@@ -831,10 +845,44 @@
                         return;
                     }
 
-                    [self performLogoHapticLoopWithFirstDuration:firstDuration
-                                                  secondDuration:secondDuration
-                                                           pause:pause
-                                                      generation:generation];
+                    AppearanceConfig *appearance =
+                        self.config.appearanceConfig;
+
+                    if (!appearance.logoPulseEnabled ||
+                        !appearance.logoHapticEnabled) {
+
+                        return;
+                    }
+
+                    [self.logoHapticGenerator impactOccurred];
+                    [self.logoHapticGenerator prepare];
+
+                    /*
+                     * Ждём завершения текущего визуального цикла,
+                     * затем запускаем следующий.
+                     */
+                    NSTimeInterval remaining =
+                        duration - secondImpactDelay;
+
+                    dispatch_after(
+                        dispatch_time(
+                            DISPATCH_TIME_NOW,
+                            (int64_t)(remaining *
+                                      NSEC_PER_SEC)
+                        ),
+                        dispatch_get_main_queue(), ^{
+
+                            if (!self.logoPulseActive ||
+                                generation != self.logoPulseGeneration ||
+                                !self.logoView ||
+                                !self.logoHapticGenerator) {
+
+                                return;
+                            }
+
+                            [self performLogoHapticLoopWithDuration:duration
+                                                          generation:generation];
+                        });
                 });
         });
 }
