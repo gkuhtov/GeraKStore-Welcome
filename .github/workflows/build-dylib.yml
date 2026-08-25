@@ -1,0 +1,51 @@
+name: Build GeraKStoreWelcome dylib
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build dylib
+        run: |
+          xcrun --sdk iphoneos clang \
+            -dynamiclib \
+            -fobjc-arc \
+            -miphoneos-version-min=14.0 \
+            -framework Foundation \
+            -framework UIKit \
+            -framework QuartzCore \
+            Core/GeraKStoreWelcome.m \
+            Core/WelcomeManager.m \
+            Core/WelcomeViewController.m \
+            Core/UserDefaults+Welcome.m \
+            Configuration/WelcomeConfig.m \
+            Configuration/Models/AppConfig.m \
+            Configuration/Models/TextConfig.m \
+            Configuration/Models/LinksConfig.m \
+            Configuration/Models/AppearanceConfig.m \
+            -I. \
+            -IConfiguration \
+            -IConfiguration/Models \
+            -ICore \
+            -o GeraKStoreWelcome.dylib
+
+      - name: Package dylib
+        run: |
+          mkdir -p build/GeraKStoreWelcome.framework
+          cp GeraKStoreWelcome.dylib build/GeraKStoreWelcome.framework/
+          cp -R Resources/Config build/GeraKStoreWelcome.framework/
+          cp Resources/Assets/GeraKStoreWelcome.png build/GeraKStoreWelcome.framework/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeraKStoreWelcome
+          path: |
+            GeraKStoreWelcome.dylib
+            build/GeraKStoreWelcome.framework/
