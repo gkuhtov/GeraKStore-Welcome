@@ -263,8 +263,8 @@
     self.logoView = [[UIImageView alloc] init];
     self.logoView.translatesAutoresizingMaskIntoConstraints = NO;
     self.logoView.contentMode = UIViewContentModeScaleAspectFit;
-    self.logoView.clipsToBounds = YES;
-    self.logoView.layer.cornerRadius = 24.0;
+    self.logoView.clipsToBounds = NO;
+    self.logoView.layer.cornerRadius = 28.0;
 
     UIImage *logo =
     [UIImage imageNamed:@"GeraKStoreWelcome.png"];
@@ -289,7 +289,7 @@
     self.logoView.contentMode = UIViewContentModeScaleAspectFit;
 
     self.logoView.layer.shadowColor = UIColor.blackColor.CGColor;
-    self.logoView.layer.shadowOpacity = 0.25;
+    self.logoView.layer.shadowOpacity = 0.35;
     self.logoView.layer.shadowRadius = 16.0;
     self.logoView.layer.shadowOffset = CGSizeMake(0, 8);
 }
@@ -356,7 +356,7 @@
     [self.contentStack addArrangedSubview:socialStack];
 
     [NSLayoutConstraint activateConstraints:@[
-        [socialStack.heightAnchor constraintEqualToConstant:44.0]
+        [socialStack.heightAnchor constraintEqualToConstant:50.0]
     ]];
 }
 
@@ -415,7 +415,8 @@
 
     button.translatesAutoresizingMaskIntoConstraints = NO;
 
-    [button setTitle:title forState:UIControlStateNormal];
+    [button setTitle:title
+            forState:UIControlStateNormal];
 
     [button setTitleColor:
      UIColor.whiteColor
@@ -425,14 +426,30 @@
     [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
 
     button.backgroundColor =
-    [UIColor.whiteColor colorWithAlphaComponent:0.10];
+    [UIColor colorWithRed:1.0
+                    green:0.31
+                     blue:0.64
+                    alpha:0.16];
 
-    button.layer.cornerRadius = 16.0;
+    button.layer.cornerRadius = 18.0;
+    button.layer.masksToBounds = NO;
 
     button.layer.borderWidth = 1.0;
-
     button.layer.borderColor =
-    [UIColor.whiteColor colorWithAlphaComponent:0.12].CGColor;
+    [UIColor colorWithRed:1.0
+                    green:0.31
+                     blue:0.64
+                    alpha:0.38].CGColor;
+
+    button.layer.shadowColor =
+    [UIColor colorWithRed:1.0
+                    green:0.31
+                     blue:0.64
+                    alpha:1.0].CGColor;
+
+    button.layer.shadowOpacity = 0.22;
+    button.layer.shadowRadius = 12.0;
+    button.layer.shadowOffset = CGSizeMake(0, 5);
 
     return button;
 }
