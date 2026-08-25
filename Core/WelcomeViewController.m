@@ -1,3 +1,4 @@
+#import "EmbeddedResourceLoader.h"
 #import "WelcomeViewController.h"
 #import "WelcomeConfig.h"
 #import "UserDefaults+Welcome.h"
