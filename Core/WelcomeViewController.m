@@ -183,6 +183,13 @@
         self.continueGradientLayer.frame = self.continueButton.bounds;
         self.continueGradientLayer.cornerRadius = self.continueButton.layer.cornerRadius;
     }
+
+    for (CALayer *layer in self.glassView.layer.sublayers) {
+        if ([layer.name isEqualToString:@"glassHighlight"]) {
+            layer.frame = self.glassView.bounds;
+            layer.cornerRadius = self.glassView.layer.cornerRadius;
+        }
+    }
 }
 
 #pragma mark - Interface
@@ -192,14 +199,54 @@
     AppearanceConfig *appearance = self.config.appearanceConfig;
     TextConfig *text = self.config.textConfig;
 
-    self.glassView = [[UIVisualEffectView alloc]
-                      initWithEffect:
-                      [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark]];
+    UIBlurEffect *blurEffect =
+    [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterialDark];
+
+    self.glassView =
+    [[UIVisualEffectView alloc] initWithEffect:blurEffect];
 
     self.glassView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.glassView.alpha = appearance.glassOpacity;
+    self.glassView.alpha = 1.0;
     self.glassView.layer.cornerRadius = appearance.glassCornerRadius;
+    self.glassView.layer.masksToBounds = NO;
     self.glassView.clipsToBounds = YES;
+
+    UIView *glassTint = [[UIView alloc] init];
+    glassTint.translatesAutoresizingMaskIntoConstraints = NO;
+    glassTint.backgroundColor =
+    [UIColor colorWithWhite:1.0 alpha:appearance.glassOpacity];
+    glassTint.userInteractionEnabled = NO;
+
+    [self.glassView.contentView addSubview:glassTint];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [glassTint.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
+        [glassTint.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
+        [glassTint.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
+        [glassTint.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+    ]];
+
+    self.glassView.layer.borderWidth = appearance.glassBorderWidth;
+    self.glassView.layer.borderColor =
+    [self colorFromHex:appearance.glassBorderColor].CGColor;
+
+    self.glassView.layer.shadowColor = UIColor.blackColor.CGColor;
+    self.glassView.layer.shadowOpacity = 0.28;
+    self.glassView.layer.shadowRadius = 30.0;
+    self.glassView.layer.shadowOffset = CGSizeMake(0, 18);
+
+    CAGradientLayer *glassHighlight = [CAGradientLayer layer];
+    glassHighlight.name = @"glassHighlight";
+    glassHighlight.colors = @[
+        (id)[UIColor colorWithWhite:1.0 alpha:0.16].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.04].CGColor,
+        (id)[UIColor clearColor].CGColor
+    ];
+    glassHighlight.startPoint = CGPointMake(0.5, 0.0);
+    glassHighlight.endPoint = CGPointMake(0.5, 0.45);
+    glassHighlight.cornerRadius = appearance.glassCornerRadius;
+    glassHighlight.masksToBounds = YES;
+    [self.glassView.layer addSublayer:glassHighlight];
 
     [self.view addSubview:self.glassView];
 
@@ -209,23 +256,6 @@
         [self.glassView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20.0],
         [self.glassView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20.0],
         [self.glassView.widthAnchor constraintLessThanOrEqualToConstant:520.0]
-    ]];
-
-    UIView *borderView = [[UIView alloc] init];
-    borderView.translatesAutoresizingMaskIntoConstraints = NO;
-    borderView.backgroundColor = UIColor.clearColor;
-    borderView.layer.cornerRadius = appearance.glassCornerRadius;
-    borderView.layer.borderWidth = appearance.glassBorderWidth;
-    borderView.layer.borderColor = [self colorFromHex:appearance.glassBorderColor].CGColor;
-    borderView.userInteractionEnabled = NO;
-
-    [self.glassView.contentView addSubview:borderView];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [borderView.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
-        [borderView.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
-        [borderView.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
-        [borderView.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
     ]];
 
     self.contentStack = [[UIStackView alloc] init];

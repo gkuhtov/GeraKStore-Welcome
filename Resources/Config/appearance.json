@@ -1,23 +1,30 @@
 {
   "glass": {
-    "blurRadius": 45,
-    "opacity": 0.22,
-    "cornerRadius": 28,
-    "borderWidth": 0.8,
-    "borderColor": "#FFFFFF33"
+    "blurRadius": 65,
+    "opacity": 0.14,
+    "cornerRadius": 34,
+    "borderWidth": 0.7,
+    "borderColor": "#FFFFFF45"
   },
   "logo": {
-    "size": 110,
-    "topOffset": 40
+    "size": 140,
+    "topOffset": 34
   },
   "colors": {
-    "backgroundGradient": ["#0A0A1F", "#1A0B2E", "#2D1B4E"],
-    "primaryGradient": ["#FF4FA3", "#FF7A59"],
+    "backgroundGradient": [
+      "#0A0A1F",
+      "#1A0B2E",
+      "#2D1B4E"
+    ],
+    "primaryGradient": [
+      "#FF4FA3",
+      "#FF7A59"
+    ],
     "titleColor": "#FFFFFF",
     "subtitleColor": "#FFFFFFAA"
   },
   "layout": {
-    "cardMaxWidth": 340,
+    "cardMaxWidth": 350,
     "buttonHeight": 52,
     "spacing": 16
   },
