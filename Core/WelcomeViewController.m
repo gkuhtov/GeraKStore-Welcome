@@ -215,6 +215,9 @@
     glassTint.translatesAutoresizingMaskIntoConstraints = NO;
     glassTint.backgroundColor =
     [UIColor colorWithWhite:1.0 alpha:appearance.glassOpacity];
+
+    glassTint.layer.cornerRadius = appearance.glassCornerRadius;
+    glassTint.layer.masksToBounds = YES;
     glassTint.userInteractionEnabled = NO;
 
     [self.glassView.contentView addSubview:glassTint];
@@ -238,8 +241,8 @@
     CAGradientLayer *glassHighlight = [CAGradientLayer layer];
     glassHighlight.name = @"glassHighlight";
     glassHighlight.colors = @[
-        (id)[UIColor colorWithWhite:1.0 alpha:0.16].CGColor,
-        (id)[UIColor colorWithWhite:1.0 alpha:0.04].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.22].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.07].CGColor,
         (id)[UIColor clearColor].CGColor
     ];
     glassHighlight.startPoint = CGPointMake(0.5, 0.0);
