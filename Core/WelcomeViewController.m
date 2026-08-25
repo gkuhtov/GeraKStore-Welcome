@@ -192,10 +192,8 @@
     AppearanceConfig *appearance = self.config.appearanceConfig;
     TextConfig *text = self.config.textConfig;
 
-    CGFloat cardWidth = MIN(
-        appearance.cardMaxWidth,
-        self.view.bounds.size.width - 40.0
-    );
+    CGFloat availableWidth = self.view.bounds.size.width - 40.0;
+    CGFloat cardWidth = MIN(availableWidth, 520.0);
 
     self.glassView = [[UIVisualEffectView alloc]
                       initWithEffect:
@@ -211,7 +209,7 @@
     [NSLayoutConstraint activateConstraints:@[
         [self.glassView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         [self.glassView.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
-        [self.glassView.widthAnchor constraintLessThanOrEqualToConstant:cardWidth],
+        [self.glassView.widthAnchor constraintEqualToConstant:cardWidth],
         [self.glassView.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.view.leadingAnchor constant:20.0],
         [self.glassView.trailingAnchor constraintLessThanOrEqualToAnchor:self.view.trailingAnchor constant:-20.0]
     ]];
@@ -530,8 +528,6 @@
 }
 
 - (void)continuePressed {
-
-    [UserDefaultsWelcome markWelcomeAsSeen];
 
     [self dismissViewControllerAnimated:YES completion:nil];
 }
