@@ -23,6 +23,7 @@ jobs:
             -framework Foundation \
             -framework UIKit \
             -framework QuartzCore \
+            -framework CoreGraphics \
             Core/GeraKStoreWelcome.m \
             Core/WelcomeManager.m \
             Core/WelcomeViewController.m \
