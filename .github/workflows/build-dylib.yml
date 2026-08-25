@@ -20,6 +20,7 @@ jobs:
             -dynamiclib \
             -fobjc-arc \
             -miphoneos-version-min=14.0 \
+            -install_name @rpath/GeraKStoreWelcome.dylib \
             -framework Foundation \
             -framework UIKit \
             -framework QuartzCore \
@@ -38,6 +39,33 @@ jobs:
             -IConfiguration/Models \
             -ICore \
             -o GeraKStoreWelcome.dylib
+
+      - name: Verify Mach-O
+        run: |
+          echo "=== FILE ==="
+          file GeraKStoreWelcome.dylib
+
+          echo
+          echo "=== INSTALL NAME ==="
+          xcrun --sdk iphoneos otool -D GeraKStoreWelcome.dylib
+
+          echo
+          echo "=== DEPENDENCIES ==="
+          xcrun --sdk iphoneos otool -L GeraKStoreWelcome.dylib
+
+          echo
+          echo "=== CHECK ==="
+          EXPECTED="@rpath/GeraKStoreWelcome.dylib"
+          ACTUAL="$(xcrun --sdk iphoneos otool -D GeraKStoreWelcome.dylib | tail -n 1)"
+
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "ERROR: wrong install name"
+            echo "Expected: $EXPECTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+
+          echo "OK: install name is correct"
 
       - name: Package dylib
         run: |
