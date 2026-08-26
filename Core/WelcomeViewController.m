@@ -353,12 +353,23 @@
     self.glassView.clipsToBounds =
         YES;
 
-    self.glassView.layer.borderWidth =
-        appearance.glassBorderWidth;
+    if (@available(iOS 26.0, *)) {
 
-    self.glassView.layer.borderColor =
-        [self colorFromHex:
-            appearance.glassBorderColor].CGColor;
+        self.glassView.layer.borderWidth =
+            0.0;
+
+        self.glassView.layer.borderColor =
+            UIColor.clearColor.CGColor;
+
+    } else {
+
+        self.glassView.layer.borderWidth =
+            appearance.glassBorderWidth;
+
+        self.glassView.layer.borderColor =
+            [self colorFromHex:
+                appearance.glassBorderColor].CGColor;
+    }
 
     [self.view
         addSubview:self.glassView];
