@@ -311,15 +311,9 @@
 
         UIGlassEffect *effect =
             [UIGlassEffect effectWithStyle:
-                UIGlassEffectStyleRegular];
+                UIGlassEffectStyleClear];
 
-        effect.tintColor =
-            [UIColor colorWithRed:1.0
-                             green:0.31
-                              blue:0.64
-                             alpha:0.08];
-
-        effect.interactive = YES;
+        effect.interactive = NO;
 
         glassEffect =
             effect;
