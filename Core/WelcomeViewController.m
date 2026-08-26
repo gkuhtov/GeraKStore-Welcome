@@ -483,50 +483,54 @@
     self.glassHighlightLayer.masksToBounds =
         YES;
 
-    [self.glassView.layer
-        addSublayer:self.glassHighlightLayer];
-
     /*
-     * Очень слабый розовый glow.
+     * На iOS 26 используем только нативный
+     * UIGlassEffect без дополнительных слоёв.
      *
-     * На iOS 26 он только дополняет
-     * системное стекло.
+     * Старые iOS получают совместимый
+     * highlight и лёгкий розовый glow.
      */
 
-    self.glassGlowLayer =
-        [CAGradientLayer layer];
+    if (!@available(iOS 26.0, *)) {
 
-    self.glassGlowLayer.name =
-        @"glassGlow";
+        [self.glassView.layer
+            addSublayer:self.glassHighlightLayer];
 
-    UIColor *pink =
-        [self colorFromHex:@"#FF4FA3"];
+        self.glassGlowLayer =
+            [CAGradientLayer layer];
 
-    self.glassGlowLayer.colors = @[
+        self.glassGlowLayer.name =
+            @"glassGlow";
 
-        (id)[UIColor clearColor].CGColor,
+        UIColor *pink =
+            [self colorFromHex:@"#FF4FA3"];
 
-        (id)[pink
-            colorWithAlphaComponent:0.018].CGColor,
+        self.glassGlowLayer.colors = @[
 
-        (id)[pink
-            colorWithAlphaComponent:0.045].CGColor
-    ];
+            (id)[UIColor clearColor].CGColor,
 
-    self.glassGlowLayer.startPoint =
-        CGPointMake(0.0, 0.0);
+            (id)[pink
+                colorWithAlphaComponent:0.018].CGColor,
 
-    self.glassGlowLayer.endPoint =
-        CGPointMake(1.0, 1.0);
+            (id)[pink
+                colorWithAlphaComponent:0.045].CGColor
+        ];
 
-    self.glassGlowLayer.cornerRadius =
-        appearance.glassCornerRadius;
+        self.glassGlowLayer.startPoint =
+            CGPointMake(0.0, 0.0);
 
-    self.glassGlowLayer.masksToBounds =
-        YES;
+        self.glassGlowLayer.endPoint =
+            CGPointMake(1.0, 1.0);
 
-    [self.glassView.layer
-        addSublayer:self.glassGlowLayer];
+        self.glassGlowLayer.cornerRadius =
+            appearance.glassCornerRadius;
+
+        self.glassGlowLayer.masksToBounds =
+            YES;
+
+        [self.glassView.layer
+            addSublayer:self.glassGlowLayer];
+    }
 
     /*
      * Контент.
