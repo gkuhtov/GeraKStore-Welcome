@@ -13,6 +13,7 @@
 @property (nonatomic, strong) UIVisualEffectView *glassBlurView;
 @property (nonatomic, strong) UIView *glassTintView;
 @property (nonatomic, strong) CAGradientLayer *glassHighlightLayer;
+@property (nonatomic, strong) CAGradientLayer *glassSheenLayer;
 
 @property (nonatomic, strong) UIImageView *logoView;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *logoHapticGenerator;
@@ -70,9 +71,15 @@
         self.continueGradientLayer.cornerRadius = self.continueButton.layer.cornerRadius;
     }
 
-    if (self.glassHighlightLayer && self.glassContainer) {
-        self.glassHighlightLayer.frame = self.glassContainer.bounds;
-        self.glassHighlightLayer.cornerRadius = self.glassContainer.layer.cornerRadius;
+    if (self.glassContainer) {
+        if (self.glassHighlightLayer) {
+            self.glassHighlightLayer.frame = self.glassContainer.bounds;
+            self.glassHighlightLayer.cornerRadius = self.glassContainer.layer.cornerRadius;
+        }
+        if (self.glassSheenLayer) {
+            self.glassSheenLayer.frame = self.glassContainer.bounds;
+            self.glassSheenLayer.cornerRadius = self.glassContainer.layer.cornerRadius;
+        }
     }
 }
 
@@ -177,10 +184,9 @@
     CGFloat radius = appearance.glassCornerRadius > 0 ? appearance.glassCornerRadius : 38.0;
 
     // =====================================================
-    // CONTROL CENTER STYLE GLASS
+    // CONTROL CENTER GLASS — более прозрачное + блики
     // =====================================================
 
-    // Контейнер карточки
     self.glassContainer = [[UIView alloc] init];
     self.glassContainer.translatesAutoresizingMaskIntoConstraints = NO;
     self.glassContainer.backgroundColor = UIColor.clearColor;
@@ -188,15 +194,15 @@
     self.glassContainer.layer.cornerCurve = kCACornerCurveContinuous;
     self.glassContainer.clipsToBounds = YES;
 
-    // Обводка как у Control Center
-    self.glassContainer.layer.borderWidth = 0.8;
-    self.glassContainer.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.18].CGColor;
+    // Тонкая светлая обводка
+    self.glassContainer.layer.borderWidth = 0.7;
+    self.glassContainer.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.22].CGColor;
 
     // Мягкая тень
     self.glassContainer.layer.shadowColor = UIColor.blackColor.CGColor;
-    self.glassContainer.layer.shadowOpacity = 0.40;
-    self.glassContainer.layer.shadowRadius = 30.0;
-    self.glassContainer.layer.shadowOffset = CGSizeMake(0, 18);
+    self.glassContainer.layer.shadowOpacity = 0.28;
+    self.glassContainer.layer.shadowRadius = 26.0;
+    self.glassContainer.layer.shadowOffset = CGSizeMake(0, 14);
     self.glassContainer.layer.masksToBounds = NO;
 
     [self.view addSubview:self.glassContainer];
@@ -209,10 +215,10 @@
         [self.glassContainer.widthAnchor constraintLessThanOrEqualToConstant:520.0]
     ]];
 
-    // 1. Тёмная база (защита от белого + глубина)
+    // 1. Очень лёгкая тёмная база (чтобы не было белого, но просвечивал фон)
     UIView *darkBase = [[UIView alloc] init];
     darkBase.translatesAutoresizingMaskIntoConstraints = NO;
-    darkBase.backgroundColor = [UIColor colorWithRed:0.07 green:0.06 blue:0.12 alpha:0.72];
+    darkBase.backgroundColor = [UIColor colorWithRed:0.05 green:0.04 blue:0.10 alpha:0.28];
     darkBase.userInteractionEnabled = NO;
     [self.glassContainer addSubview:darkBase];
 
@@ -223,11 +229,12 @@
         [darkBase.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 2. Blur как material Control Center
-    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
+    // 2. Более прозрачный blur
+    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
     self.glassBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     self.glassBlurView.translatesAutoresizingMaskIntoConstraints = NO;
     self.glassBlurView.userInteractionEnabled = NO;
+    self.glassBlurView.alpha = 0.92;
     [self.glassContainer addSubview:self.glassBlurView];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -237,10 +244,10 @@
         [self.glassBlurView.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 3. Лёгкий светлый tint
+    // 3. Лёгкий tint
     self.glassTintView = [[UIView alloc] init];
     self.glassTintView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.glassTintView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.06];
+    self.glassTintView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.05];
     self.glassTintView.userInteractionEnabled = NO;
     [self.glassContainer addSubview:self.glassTintView];
 
@@ -251,17 +258,30 @@
         [self.glassTintView.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 4. Верхний блик Control Center
+    // 4. Верхний блик (как Control Center)
     self.glassHighlightLayer = [CAGradientLayer layer];
     self.glassHighlightLayer.colors = @[
-        (id)[UIColor colorWithWhite:1.0 alpha:0.26].CGColor,
-        (id)[UIColor colorWithWhite:1.0 alpha:0.08].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.34].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.12].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.03].CGColor,
         (id)[UIColor clearColor].CGColor
     ];
-    self.glassHighlightLayer.locations = @[@0.0, @0.18, @0.48];
+    self.glassHighlightLayer.locations = @[@0.0, @0.12, @0.28, @0.55];
     self.glassHighlightLayer.startPoint = CGPointMake(0.5, 0.0);
     self.glassHighlightLayer.endPoint = CGPointMake(0.5, 1.0);
     [self.glassContainer.layer addSublayer:self.glassHighlightLayer];
+
+    // 5. Диагональный sheen (второй блик)
+    self.glassSheenLayer = [CAGradientLayer layer];
+    self.glassSheenLayer.colors = @[
+        (id)[UIColor clearColor].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.10].CGColor,
+        (id)[UIColor clearColor].CGColor
+    ];
+    self.glassSheenLayer.locations = @[@0.0, @0.45, @1.0];
+    self.glassSheenLayer.startPoint = CGPointMake(0.0, 0.0);
+    self.glassSheenLayer.endPoint = CGPointMake(1.0, 1.0);
+    [self.glassContainer.layer addSublayer:self.glassSheenLayer];
 
     // Контент
     self.contentStack = [[UIStackView alloc] init];
