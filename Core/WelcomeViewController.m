@@ -9,10 +9,10 @@
 @property (nonatomic, strong) CAShapeLayer *mountainsLayer;
 @property (nonatomic, strong) CALayer *starsLayer;
 
-@property (nonatomic, strong) UIVisualEffectView *glassView;
+@property (nonatomic, strong) UIView *glassContainer;
+@property (nonatomic, strong) UIVisualEffectView *glassBlurView;
 @property (nonatomic, strong) UIView *glassTintView;
 @property (nonatomic, strong) CAGradientLayer *glassHighlightLayer;
-@property (nonatomic, strong) CAGradientLayer *glassGlowLayer;
 
 @property (nonatomic, strong) UIImageView *logoView;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *logoHapticGenerator;
@@ -41,12 +41,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.modalPresentationStyle =
-        UIModalPresentationFullScreen;
-
-    self.view.backgroundColor =
-        UIColor.blackColor;
-
+    self.modalPresentationStyle = UIModalPresentationFullScreen;
+    self.view.backgroundColor = UIColor.blackColor;
     self.view.opaque = YES;
 
     [self setupBackground];
@@ -59,41 +55,24 @@
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
 
-    self.backgroundGradientLayer.frame =
-        self.view.bounds;
+    self.backgroundGradientLayer.frame = self.view.bounds;
 
     if (self.starsLayer) {
-        self.starsLayer.frame =
-            self.view.bounds;
+        self.starsLayer.frame = self.view.bounds;
     }
 
     if (self.mountainsLayer) {
-        self.mountainsLayer.frame =
-            self.view.bounds;
+        self.mountainsLayer.frame = self.view.bounds;
     }
 
-    if (self.continueGradientLayer) {
-        self.continueGradientLayer.frame =
-            self.continueButton.bounds;
-
-        self.continueGradientLayer.cornerRadius =
-            self.continueButton.layer.cornerRadius;
+    if (self.continueGradientLayer && self.continueButton) {
+        self.continueGradientLayer.frame = self.continueButton.bounds;
+        self.continueGradientLayer.cornerRadius = self.continueButton.layer.cornerRadius;
     }
 
-    if (self.glassHighlightLayer) {
-        self.glassHighlightLayer.frame =
-            self.glassView.bounds;
-
-        self.glassHighlightLayer.cornerRadius =
-            self.glassView.layer.cornerRadius;
-    }
-
-    if (self.glassGlowLayer) {
-        self.glassGlowLayer.frame =
-            self.glassView.bounds;
-
-        self.glassGlowLayer.cornerRadius =
-            self.glassView.layer.cornerRadius;
+    if (self.glassHighlightLayer && self.glassContainer) {
+        self.glassHighlightLayer.frame = self.glassContainer.bounds;
+        self.glassHighlightLayer.cornerRadius = self.glassContainer.layer.cornerRadius;
     }
 }
 
@@ -111,19 +90,13 @@
 #pragma mark - Background
 
 - (void)setupBackground {
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
+    AppearanceConfig *appearance = self.config.appearanceConfig;
 
-    NSArray *colors =
-        appearance.backgroundGradient;
-
-    NSMutableArray *cgColors =
-        [NSMutableArray array];
+    NSArray *colors = appearance.backgroundGradient;
+    NSMutableArray *cgColors = [NSMutableArray array];
 
     for (NSString *hex in colors) {
-        UIColor *color =
-            [self colorFromHex:hex];
-
+        UIColor *color = [self colorFromHex:hex];
         if (color) {
             [cgColors addObject:(id)color.CGColor];
         }
@@ -134,67 +107,33 @@
         [cgColors addObject:(id)UIColor.darkGrayColor.CGColor];
     }
 
-    self.backgroundGradientLayer =
-        [CAGradientLayer layer];
+    self.backgroundGradientLayer = [CAGradientLayer layer];
+    self.backgroundGradientLayer.colors = cgColors;
+    self.backgroundGradientLayer.startPoint = CGPointMake(0.0, 0.0);
+    self.backgroundGradientLayer.endPoint = CGPointMake(1.0, 1.0);
 
-    self.backgroundGradientLayer.colors =
-        cgColors;
-
-    self.backgroundGradientLayer.startPoint =
-        CGPointMake(0.0, 0.0);
-
-    self.backgroundGradientLayer.endPoint =
-        CGPointMake(1.0, 1.0);
-
-    [self.view.layer
-        insertSublayer:self.backgroundGradientLayer
-               atIndex:0];
+    [self.view.layer insertSublayer:self.backgroundGradientLayer atIndex:0];
 }
 
 - (void)setupDecorations {
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
+    AppearanceConfig *appearance = self.config.appearanceConfig;
 
     if (appearance.showStars) {
-        self.starsLayer =
-            [CALayer layer];
+        self.starsLayer = [CALayer layer];
+        self.starsLayer.frame = self.view.bounds;
 
-        self.starsLayer.frame =
-            self.view.bounds;
+        for (NSInteger i = 0; i < 55; i++) {
+            CGFloat size = 1.0 + ((CGFloat)arc4random_uniform(12) / 10.0);
 
-        NSInteger starCount = 55;
+            CALayer *star = [CALayer layer];
+            star.bounds = CGRectMake(0, 0, size, size);
 
-        for (NSInteger i = 0; i < starCount; i++) {
-            CGFloat size =
-                1.0 + ((CGFloat)arc4random_uniform(12) / 10.0);
+            CGFloat x = (CGFloat)arc4random() / (CGFloat)UINT32_MAX * self.view.bounds.size.width;
+            CGFloat y = (CGFloat)arc4random() / (CGFloat)UINT32_MAX * self.view.bounds.size.height;
 
-            CALayer *star =
-                [CALayer layer];
-
-            star.bounds =
-                CGRectMake(0, 0, size, size);
-
-            CGFloat x =
-                (CGFloat)arc4random() /
-                (CGFloat)UINT32_MAX *
-                self.view.bounds.size.width;
-
-            CGFloat y =
-                (CGFloat)arc4random() /
-                (CGFloat)UINT32_MAX *
-                self.view.bounds.size.height;
-
-            star.position =
-                CGPointMake(x, y);
-
-            star.cornerRadius =
-                size / 2.0;
-
-            star.backgroundColor =
-                [UIColor.whiteColor
-                    colorWithAlphaComponent:
-                        0.18 +
-                        ((CGFloat)arc4random_uniform(55) / 100.0)].CGColor;
+            star.position = CGPointMake(x, y);
+            star.cornerRadius = size / 2.0;
+            star.backgroundColor = [UIColor.whiteColor colorWithAlphaComponent:0.18 + ((CGFloat)arc4random_uniform(55) / 100.0)].CGColor;
 
             [self.starsLayer addSublayer:star];
         }
@@ -203,23 +142,13 @@
     }
 
     if (appearance.showMountains) {
-        self.mountainsLayer =
-            [CAShapeLayer layer];
+        self.mountainsLayer = [CAShapeLayer layer];
+        self.mountainsLayer.frame = self.view.bounds;
 
-        self.mountainsLayer.frame =
-            self.view.bounds;
-
-        UIBezierPath *path =
-            [UIBezierPath bezierPath];
-
-        CGFloat width =
-            self.view.bounds.size.width;
-
-        CGFloat height =
-            self.view.bounds.size.height;
-
-        CGFloat baseY =
-            height * 0.88;
+        UIBezierPath *path = [UIBezierPath bezierPath];
+        CGFloat width = self.view.bounds.size.width;
+        CGFloat height = self.view.bounds.size.height;
+        CGFloat baseY = height * 0.88;
 
         [path moveToPoint:CGPointMake(0, baseY)];
         [path addLineToPoint:CGPointMake(width * 0.16, height * 0.70)];
@@ -231,14 +160,9 @@
         [path addLineToPoint:CGPointMake(width, baseY)];
         [path closePath];
 
-        self.mountainsLayer.path =
-            path.CGPath;
-
-        self.mountainsLayer.fillColor =
-            [UIColor.blackColor colorWithAlphaComponent:0.20].CGColor;
-
-        self.mountainsLayer.strokeColor =
-            UIColor.clearColor.CGColor;
+        self.mountainsLayer.path = path.CGPath;
+        self.mountainsLayer.fillColor = [UIColor.blackColor colorWithAlphaComponent:0.20].CGColor;
+        self.mountainsLayer.strokeColor = UIColor.clearColor.CGColor;
 
         [self.view.layer addSublayer:self.mountainsLayer];
     }
@@ -247,221 +171,112 @@
 #pragma mark - Interface
 
 - (void)setupInterface {
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+    TextConfig *text = self.config.textConfig;
 
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
-
-    TextConfig *text =
-        self.config.textConfig;
+    CGFloat radius = appearance.glassCornerRadius > 0 ? appearance.glassCornerRadius : 38.0;
 
     // =====================================================
-    // УСТОЙЧИВОЕ ТЁМНОЕ GLASS
-    // Фиксит белый блок по центру
+    // CONTROL CENTER STYLE GLASS
     // =====================================================
 
-    self.glassView =
-        [[UIVisualEffectView alloc] initWithEffect:nil];
+    // Контейнер карточки
+    self.glassContainer = [[UIView alloc] init];
+    self.glassContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    self.glassContainer.backgroundColor = UIColor.clearColor;
+    self.glassContainer.layer.cornerRadius = radius;
+    self.glassContainer.layer.cornerCurve = kCACornerCurveContinuous;
+    self.glassContainer.clipsToBounds = YES;
 
-    self.glassView.translatesAutoresizingMaskIntoConstraints =
-        NO;
+    // Обводка как у Control Center
+    self.glassContainer.layer.borderWidth = 0.8;
+    self.glassContainer.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.18].CGColor;
 
-    self.glassView.backgroundColor =
-        UIColor.clearColor;
+    // Мягкая тень
+    self.glassContainer.layer.shadowColor = UIColor.blackColor.CGColor;
+    self.glassContainer.layer.shadowOpacity = 0.40;
+    self.glassContainer.layer.shadowRadius = 30.0;
+    self.glassContainer.layer.shadowOffset = CGSizeMake(0, 18);
+    self.glassContainer.layer.masksToBounds = NO;
 
-    self.glassView.layer.cornerRadius =
-        appearance.glassCornerRadius;
-
-    self.glassView.clipsToBounds =
-        YES;
-
-    self.glassView.layer.borderWidth =
-        appearance.glassBorderWidth > 0 ? appearance.glassBorderWidth : 0.8;
-
-    self.glassView.layer.borderColor =
-        [self colorFromHex:
-            appearance.glassBorderColor ?: @"#FFFFFF55"].CGColor;
-
-    self.glassView.layer.masksToBounds =
-        NO;
-
-    self.glassView.layer.shadowColor =
-        UIColor.blackColor.CGColor;
-
-    self.glassView.layer.shadowOpacity =
-        0.35;
-
-    self.glassView.layer.shadowRadius =
-        28.0;
-
-    self.glassView.layer.shadowOffset =
-        CGSizeMake(0, 16);
-
-    [self.view addSubview:self.glassView];
+    [self.view addSubview:self.glassContainer];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.glassView.centerXAnchor
-            constraintEqualToAnchor:self.view.centerXAnchor],
-
-        [self.glassView.centerYAnchor
-            constraintEqualToAnchor:self.view.centerYAnchor],
-
-        [self.glassView.leadingAnchor
-            constraintEqualToAnchor:self.view.leadingAnchor
-                           constant:20.0],
-
-        [self.glassView.trailingAnchor
-            constraintEqualToAnchor:self.view.trailingAnchor
-                           constant:-20.0],
-
-        [self.glassView.widthAnchor
-            constraintLessThanOrEqualToConstant:520.0]
+        [self.glassContainer.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [self.glassContainer.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+        [self.glassContainer.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20.0],
+        [self.glassContainer.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20.0],
+        [self.glassContainer.widthAnchor constraintLessThanOrEqualToConstant:520.0]
     ]];
 
-    // 1. Тёмная подложка (защита от белого)
-    UIView *darkBase =
-        [[UIView alloc] init];
-
-    darkBase.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    darkBase.backgroundColor =
-        [UIColor colorWithRed:0.06
-                        green:0.05
-                         blue:0.12
-                        alpha:0.88];
-
-    darkBase.layer.cornerRadius =
-        appearance.glassCornerRadius;
-
-    darkBase.userInteractionEnabled =
-        NO;
-
-    [self.glassView.contentView insertSubview:darkBase atIndex:0];
+    // 1. Тёмная база (защита от белого + глубина)
+    UIView *darkBase = [[UIView alloc] init];
+    darkBase.translatesAutoresizingMaskIntoConstraints = NO;
+    darkBase.backgroundColor = [UIColor colorWithRed:0.07 green:0.06 blue:0.12 alpha:0.72];
+    darkBase.userInteractionEnabled = NO;
+    [self.glassContainer addSubview:darkBase];
 
     [NSLayoutConstraint activateConstraints:@[
-        [darkBase.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
-        [darkBase.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
-        [darkBase.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
-        [darkBase.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+        [darkBase.topAnchor constraintEqualToAnchor:self.glassContainer.topAnchor],
+        [darkBase.bottomAnchor constraintEqualToAnchor:self.glassContainer.bottomAnchor],
+        [darkBase.leadingAnchor constraintEqualToAnchor:self.glassContainer.leadingAnchor],
+        [darkBase.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 2. Blur
-    UIBlurEffect *blurEffect =
-        [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
-
-    UIVisualEffectView *blurView =
-        [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-
-    blurView.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    blurView.userInteractionEnabled =
-        NO;
-
-    [self.glassView.contentView insertSubview:blurView aboveSubview:darkBase];
+    // 2. Blur как material Control Center
+    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
+    self.glassBlurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    self.glassBlurView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.glassBlurView.userInteractionEnabled = NO;
+    [self.glassContainer addSubview:self.glassBlurView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [blurView.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
-        [blurView.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
-        [blurView.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
-        [blurView.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+        [self.glassBlurView.topAnchor constraintEqualToAnchor:self.glassContainer.topAnchor],
+        [self.glassBlurView.bottomAnchor constraintEqualToAnchor:self.glassContainer.bottomAnchor],
+        [self.glassBlurView.leadingAnchor constraintEqualToAnchor:self.glassContainer.leadingAnchor],
+        [self.glassBlurView.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 3. Tint
-    self.glassTintView =
-        [[UIView alloc] init];
-
-    self.glassTintView.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    self.glassTintView.backgroundColor =
-        [UIColor colorWithWhite:1.0 alpha:0.08];
-
-    self.glassTintView.layer.cornerRadius =
-        appearance.glassCornerRadius;
-
-    self.glassTintView.userInteractionEnabled =
-        NO;
-
-    [self.glassView.contentView addSubview:self.glassTintView];
+    // 3. Лёгкий светлый tint
+    self.glassTintView = [[UIView alloc] init];
+    self.glassTintView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.glassTintView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.06];
+    self.glassTintView.userInteractionEnabled = NO;
+    [self.glassContainer addSubview:self.glassTintView];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.glassTintView.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
-        [self.glassTintView.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
-        [self.glassTintView.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
-        [self.glassTintView.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+        [self.glassTintView.topAnchor constraintEqualToAnchor:self.glassContainer.topAnchor],
+        [self.glassTintView.bottomAnchor constraintEqualToAnchor:self.glassContainer.bottomAnchor],
+        [self.glassTintView.leadingAnchor constraintEqualToAnchor:self.glassContainer.leadingAnchor],
+        [self.glassTintView.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor]
     ]];
 
-    // 4. Блик
-    self.glassHighlightLayer =
-        [CAGradientLayer layer];
-
-    self.glassHighlightLayer.name =
-        @"glassHighlight";
-
+    // 4. Верхний блик Control Center
+    self.glassHighlightLayer = [CAGradientLayer layer];
     self.glassHighlightLayer.colors = @[
-        (id)[UIColor colorWithWhite:1.0 alpha:0.22].CGColor,
-        (id)[UIColor colorWithWhite:1.0 alpha:0.06].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.26].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.08].CGColor,
         (id)[UIColor clearColor].CGColor
     ];
-
-    self.glassHighlightLayer.locations = @[
-        @0.0,
-        @0.22,
-        @0.55
-    ];
-
-    self.glassHighlightLayer.startPoint =
-        CGPointMake(0.5, 0.0);
-
-    self.glassHighlightLayer.endPoint =
-        CGPointMake(0.5, 0.55);
-
-    self.glassHighlightLayer.cornerRadius =
-        appearance.glassCornerRadius;
-
-    self.glassHighlightLayer.masksToBounds =
-        YES;
-
-    [self.glassView.layer addSublayer:self.glassHighlightLayer];
+    self.glassHighlightLayer.locations = @[@0.0, @0.18, @0.48];
+    self.glassHighlightLayer.startPoint = CGPointMake(0.5, 0.0);
+    self.glassHighlightLayer.endPoint = CGPointMake(0.5, 1.0);
+    [self.glassContainer.layer addSublayer:self.glassHighlightLayer];
 
     // Контент
-    self.contentStack =
-        [[UIStackView alloc] init];
-
-    self.contentStack.axis =
-        UILayoutConstraintAxisVertical;
-
-    self.contentStack.alignment =
-        UIStackViewAlignmentFill;
-
-    self.contentStack.distribution =
-        UIStackViewDistributionFill;
-
-    self.contentStack.spacing =
-        appearance.spacing;
-
-    self.contentStack.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    [self.glassView.contentView addSubview:self.contentStack];
+    self.contentStack = [[UIStackView alloc] init];
+    self.contentStack.axis = UILayoutConstraintAxisVertical;
+    self.contentStack.alignment = UIStackViewAlignmentFill;
+    self.contentStack.distribution = UIStackViewDistributionFill;
+    self.contentStack.spacing = appearance.spacing;
+    self.contentStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.glassContainer addSubview:self.contentStack];
 
     [NSLayoutConstraint activateConstraints:@[
-        [self.contentStack.topAnchor
-            constraintEqualToAnchor:self.glassView.contentView.topAnchor
-                           constant:appearance.logoTopOffset],
-
-        [self.contentStack.bottomAnchor
-            constraintEqualToAnchor:self.glassView.contentView.bottomAnchor
-                           constant:-24.0],
-
-        [self.contentStack.leadingAnchor
-            constraintEqualToAnchor:self.glassView.contentView.leadingAnchor
-                           constant:24.0],
-
-        [self.contentStack.trailingAnchor
-            constraintEqualToAnchor:self.glassView.contentView.trailingAnchor
-                           constant:-24.0]
+        [self.contentStack.topAnchor constraintEqualToAnchor:self.glassContainer.topAnchor constant:appearance.logoTopOffset],
+        [self.contentStack.bottomAnchor constraintEqualToAnchor:self.glassContainer.bottomAnchor constant:-24.0],
+        [self.contentStack.leadingAnchor constraintEqualToAnchor:self.glassContainer.leadingAnchor constant:24.0],
+        [self.contentStack.trailingAnchor constraintEqualToAnchor:self.glassContainer.trailingAnchor constant:-24.0]
     ]];
 
     [self setupLogo];
@@ -480,45 +295,22 @@
 #pragma mark - Logo
 
 - (void)setupLogo {
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
+    AppearanceConfig *appearance = self.config.appearanceConfig;
 
-    self.logoView =
-        [[UIImageView alloc] init];
+    self.logoView = [[UIImageView alloc] init];
+    self.logoView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.logoView.contentMode = UIViewContentModeScaleAspectFit;
+    self.logoView.clipsToBounds = NO;
 
-    self.logoView.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    self.logoView.contentMode =
-        UIViewContentModeScaleAspectFit;
-
-    self.logoView.clipsToBounds =
-        NO;
-
-    UIImage *logo =
-        [UIImage imageNamed:@"GeraKStoreWelcome.png"];
-
-    if (!logo) {
-        logo = [UIImage imageNamed:@"GeraKStoreWelcome"];
-    }
-
-    if (!logo) {
-        logo =
-            [EmbeddedResourceLoader
-                imageForResource:@"GeraKStoreWelcome"
-                       extension:@"png"];
-    }
-
-    if (!logo) {
-        logo = [UIImage imageNamed:@"AppIcon"];
-    }
+    UIImage *logo = [UIImage imageNamed:@"GeraKStoreWelcome.png"];
+    if (!logo) logo = [UIImage imageNamed:@"GeraKStoreWelcome"];
+    if (!logo) logo = [EmbeddedResourceLoader imageForResource:@"GeraKStoreWelcome" extension:@"png"];
+    if (!logo) logo = [UIImage imageNamed:@"AppIcon"];
 
     self.logoView.image = logo;
-
     [self.contentStack addArrangedSubview:self.logoView];
 
-    CGFloat logoSize =
-        MAX(80.0, appearance.logoSize + 15.0);
+    CGFloat logoSize = MAX(80.0, appearance.logoSize + 15.0);
 
     [NSLayoutConstraint activateConstraints:@[
         [self.logoView.heightAnchor constraintEqualToConstant:logoSize],
@@ -526,106 +318,53 @@
         [self.logoView.centerXAnchor constraintEqualToAnchor:self.contentStack.centerXAnchor]
     ]];
 
-    self.logoView.layer.shadowColor =
-        UIColor.blackColor.CGColor;
-
-    self.logoView.layer.shadowOpacity =
-        0.35;
-
-    self.logoView.layer.shadowRadius =
-        16.0;
-
-    self.logoView.layer.shadowOffset =
-        CGSizeMake(0, 8);
+    self.logoView.layer.shadowColor = UIColor.blackColor.CGColor;
+    self.logoView.layer.shadowOpacity = 0.35;
+    self.logoView.layer.shadowRadius = 16.0;
+    self.logoView.layer.shadowOffset = CGSizeMake(0, 8);
 }
 
-#pragma mark - Title
+#pragma mark - Title / Subtitle
 
 - (void)setupTitle:(NSString *)title {
-    self.titleLabel =
-        [[UILabel alloc] init];
-
-    self.titleLabel.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    self.titleLabel.text =
-        title;
-
-    self.titleLabel.textColor =
-        [self colorFromHex:self.config.appearanceConfig.titleColor];
-
-    self.titleLabel.font =
-        [UIFont systemFontOfSize:30.0 weight:UIFontWeightBold];
-
-    self.titleLabel.textAlignment =
-        NSTextAlignmentCenter;
-
-    self.titleLabel.numberOfLines =
-        0;
-
+    self.titleLabel = [[UILabel alloc] init];
+    self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.titleLabel.text = title;
+    self.titleLabel.textColor = [self colorFromHex:self.config.appearanceConfig.titleColor] ?: UIColor.whiteColor;
+    self.titleLabel.font = [UIFont systemFontOfSize:30.0 weight:UIFontWeightBold];
+    self.titleLabel.textAlignment = NSTextAlignmentCenter;
+    self.titleLabel.numberOfLines = 0;
     [self.contentStack addArrangedSubview:self.titleLabel];
 }
 
-#pragma mark - Subtitle
-
 - (void)setupSubtitle:(NSString *)subtitle {
-    self.subtitleLabel =
-        [[UILabel alloc] init];
-
-    self.subtitleLabel.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    self.subtitleLabel.text =
-        subtitle;
-
-    self.subtitleLabel.textColor =
-        [self colorFromHex:self.config.appearanceConfig.subtitleColor];
-
-    self.subtitleLabel.font =
-        [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
-
-    self.subtitleLabel.textAlignment =
-        NSTextAlignmentCenter;
-
-    self.subtitleLabel.numberOfLines =
-        0;
-
+    self.subtitleLabel = [[UILabel alloc] init];
+    self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.subtitleLabel.text = subtitle;
+    self.subtitleLabel.textColor = [self colorFromHex:self.config.appearanceConfig.subtitleColor] ?: [UIColor colorWithWhite:1 alpha:0.7];
+    self.subtitleLabel.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
+    self.subtitleLabel.textAlignment = NSTextAlignmentCenter;
+    self.subtitleLabel.numberOfLines = 0;
     [self.contentStack addArrangedSubview:self.subtitleLabel];
 }
 
-#pragma mark - Social Buttons
+#pragma mark - Buttons
 
 - (void)setupSocialButtons {
-    TextConfig *text =
-        self.config.textConfig;
+    TextConfig *text = self.config.textConfig;
 
-    self.socialStack =
-        [[UIStackView alloc] init];
+    self.socialStack = [[UIStackView alloc] init];
+    self.socialStack.axis = UILayoutConstraintAxisHorizontal;
+    self.socialStack.spacing = 12.0;
+    self.socialStack.alignment = UIStackViewAlignmentFill;
+    self.socialStack.distribution = UIStackViewDistributionFillEqually;
+    self.socialStack.translatesAutoresizingMaskIntoConstraints = NO;
 
-    self.socialStack.axis =
-        UILayoutConstraintAxisHorizontal;
-
-    self.socialStack.spacing =
-        12.0;
-
-    self.socialStack.alignment =
-        UIStackViewAlignmentFill;
-
-    self.socialStack.distribution =
-        UIStackViewDistributionFillEqually;
-
-    self.socialStack.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    self.telegramButton =
-        [self createGlassButtonWithTitle:text.telegramButton];
-
-    self.githubButton =
-        [self createGlassButtonWithTitle:text.githubButton];
+    self.telegramButton = [self createGlassButtonWithTitle:text.telegramButton];
+    self.githubButton = [self createGlassButtonWithTitle:text.githubButton];
 
     [self.socialStack addArrangedSubview:self.telegramButton];
     [self.socialStack addArrangedSubview:self.githubButton];
-
     [self.contentStack addArrangedSubview:self.socialStack];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -634,19 +373,11 @@
     ]];
 }
 
-#pragma mark - Continue
-
 - (void)setupContinueButton {
-    TextConfig *text =
-        self.config.textConfig;
+    TextConfig *text = self.config.textConfig;
+    AppearanceConfig *appearance = self.config.appearanceConfig;
 
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
-
-    self.continueButton =
-        [self createPrimaryButtonWithTitle:text.continueButton
-                                    colors:appearance.primaryGradient];
-
+    self.continueButton = [self createPrimaryButtonWithTitle:text.continueButton colors:appearance.primaryGradient];
     [self.contentStack addArrangedSubview:self.continueButton];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -655,26 +386,12 @@
     ]];
 }
 
-#pragma mark - Don't Show Again
-
 - (void)setupDontShowAgain:(NSString *)title {
-    self.dontShowAgainButton =
-        [UIButton buttonWithType:UIButtonTypeSystem];
-
-    self.dontShowAgainButton.translatesAutoresizingMaskIntoConstraints =
-        NO;
-
-    [self.dontShowAgainButton
-        setTitle:title
-        forState:UIControlStateNormal];
-
-    [self.dontShowAgainButton
-        setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.55]
-             forState:UIControlStateNormal];
-
-    self.dontShowAgainButton.titleLabel.font =
-        [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
-
+    self.dontShowAgainButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.dontShowAgainButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.dontShowAgainButton setTitle:title forState:UIControlStateNormal];
+    [self.dontShowAgainButton setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.55] forState:UIControlStateNormal];
+    self.dontShowAgainButton.titleLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
     [self.contentStack addArrangedSubview:self.dontShowAgainButton];
 
     [NSLayoutConstraint activateConstraints:@[
@@ -682,120 +399,58 @@
     ]];
 }
 
-#pragma mark - Buttons
-
 - (UIButton *)createGlassButtonWithTitle:(NSString *)title {
-    UIButton *button =
-        [UIButton buttonWithType:UIButtonTypeSystem];
-
-    button.translatesAutoresizingMaskIntoConstraints =
-        NO;
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
 
     [button setTitle:title forState:UIControlStateNormal];
+    [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.72] forState:UIControlStateHighlighted];
 
-    [button setTitleColor:UIColor.whiteColor
-                 forState:UIControlStateNormal];
-
-    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.72]
-                 forState:UIControlStateHighlighted];
-
-    button.titleLabel.font =
-        [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
-
-    button.backgroundColor =
-        [UIColor.whiteColor colorWithAlphaComponent:0.065];
-
-    button.layer.cornerRadius =
-        18.0;
-
-    button.layer.masksToBounds =
-        NO;
-
-    button.layer.borderWidth =
-        1.0;
-
-    button.layer.borderColor =
-        [UIColor.whiteColor colorWithAlphaComponent:0.14].CGColor;
-
-    button.layer.shadowColor =
-        UIColor.blackColor.CGColor;
-
-    button.layer.shadowOpacity =
-        0.16;
-
-    button.layer.shadowRadius =
-        12.0;
-
-    button.layer.shadowOffset =
-        CGSizeMake(0, 5);
+    button.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    button.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.10];
+    button.layer.cornerRadius = 18.0;
+    button.layer.cornerCurve = kCACornerCurveContinuous;
+    button.layer.borderWidth = 0.8;
+    button.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.16].CGColor;
 
     return button;
 }
 
-- (UIButton *)createPrimaryButtonWithTitle:(NSString *)title
-                                    colors:(NSArray<NSString *> *)colors {
-
-    UIButton *button =
-        [UIButton buttonWithType:UIButtonTypeSystem];
-
-    button.translatesAutoresizingMaskIntoConstraints =
-        NO;
+- (UIButton *)createPrimaryButtonWithTitle:(NSString *)title colors:(NSArray<NSString *> *)colors {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
 
     [button setTitle:title forState:UIControlStateNormal];
+    [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.80] forState:UIControlStateHighlighted];
 
-    [button setTitleColor:UIColor.whiteColor
-                 forState:UIControlStateNormal];
+    button.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightBold];
+    button.layer.cornerRadius = 18.0;
+    button.layer.cornerCurve = kCACornerCurveContinuous;
+    button.clipsToBounds = YES;
 
-    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.80]
-                 forState:UIControlStateHighlighted];
-
-    button.titleLabel.font =
-        [UIFont systemFontOfSize:17.0 weight:UIFontWeightBold];
-
-    button.layer.cornerRadius =
-        18.0;
-
-    CAGradientLayer *gradient =
-        [CAGradientLayer layer];
-
-    NSMutableArray *cgColors =
-        [NSMutableArray array];
+    CAGradientLayer *gradient = [CAGradientLayer layer];
+    NSMutableArray *cgColors = [NSMutableArray array];
 
     for (NSString *hex in colors) {
-        UIColor *color =
-            [self colorFromHex:hex];
-
-        if (color) {
-            [cgColors addObject:(id)color.CGColor];
-        }
+        UIColor *color = [self colorFromHex:hex];
+        if (color) [cgColors addObject:(id)color.CGColor];
     }
 
     if (cgColors.count > 0) {
         gradient.colors = cgColors;
     }
 
-    gradient.startPoint =
-        CGPointMake(0.0, 0.5);
-
-    gradient.endPoint =
-        CGPointMake(1.0, 0.5);
-
-    self.continueGradientLayer =
-        gradient;
-
+    gradient.startPoint = CGPointMake(0.0, 0.5);
+    gradient.endPoint = CGPointMake(1.0, 0.5);
+    self.continueGradientLayer = gradient;
     [button.layer insertSublayer:gradient atIndex:0];
 
-    button.layer.shadowColor =
-        [self colorFromHex:@"#FF4FA3"].CGColor;
-
-    button.layer.shadowOpacity =
-        0.24;
-
-    button.layer.shadowRadius =
-        14.0;
-
-    button.layer.shadowOffset =
-        CGSizeMake(0, 6);
+    button.layer.shadowColor = [self colorFromHex:@"#FF4FA3"].CGColor;
+    button.layer.shadowOpacity = 0.24;
+    button.layer.shadowRadius = 14.0;
+    button.layer.shadowOffset = CGSizeMake(0, 6);
 
     return button;
 }
@@ -803,25 +458,10 @@
 #pragma mark - Actions
 
 - (void)setupActions {
-    [self.telegramButton
-        addTarget:self
-           action:@selector(openTelegram)
- forControlEvents:UIControlEventTouchUpInside];
-
-    [self.githubButton
-        addTarget:self
-           action:@selector(openGitHub)
- forControlEvents:UIControlEventTouchUpInside];
-
-    [self.continueButton
-        addTarget:self
-           action:@selector(continuePressed)
- forControlEvents:UIControlEventTouchUpInside];
-
-    [self.dontShowAgainButton
-        addTarget:self
-           action:@selector(dontShowAgainPressed)
- forControlEvents:UIControlEventTouchUpInside];
+    [self.telegramButton addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
+    [self.githubButton addTarget:self action:@selector(openGitHub) forControlEvents:UIControlEventTouchUpInside];
+    [self.continueButton addTarget:self action:@selector(continuePressed) forControlEvents:UIControlEventTouchUpInside];
+    [self.dontShowAgainButton addTarget:self action:@selector(dontShowAgainPressed) forControlEvents:UIControlEventTouchUpInside];
 }
 
 - (void)openTelegram {
@@ -842,25 +482,14 @@
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
-#pragma mark - URL
-
 - (void)openURLString:(NSString *)string {
-    if (string.length == 0) {
-        return;
-    }
+    if (string.length == 0) return;
 
-    NSURL *url =
-        [NSURL URLWithString:string];
-
-    if (!url) {
-        return;
-    }
+    NSURL *url = [NSURL URLWithString:string];
+    if (!url) return;
 
     if (@available(iOS 10.0, *)) {
-        [[UIApplication sharedApplication]
-            openURL:url
-            options:@{}
-  completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
     } else {
         [[UIApplication sharedApplication] openURL:url];
     }
@@ -869,235 +498,106 @@
 #pragma mark - Animation
 
 - (void)animateInterface {
-    if (!self.config.appConfig.animationEnabled) {
-        return;
-    }
+    if (!self.config.appConfig.animationEnabled) return;
 
-    self.glassView.alpha =
-        0.0;
-
-    self.glassView.transform =
-        CGAffineTransformMakeScale(0.94, 0.94);
+    self.glassContainer.alpha = 0.0;
+    self.glassContainer.transform = CGAffineTransformMakeScale(0.94, 0.94);
 
     [UIView animateWithDuration:0.45
                           delay:0.05
                         options:UIViewAnimationOptionCurveEaseOut
                      animations:^{
-        self.glassView.alpha =
-            1.0;
-
-        self.glassView.transform =
-            CGAffineTransformIdentity;
+        self.glassContainer.alpha = 1.0;
+        self.glassContainer.transform = CGAffineTransformIdentity;
     } completion:nil];
 }
 
 #pragma mark - Logo Pulse
 
 - (void)setupLogoPulse {
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+    if (!appearance.logoPulseEnabled || !self.logoView) return;
 
-    if (!appearance.logoPulseEnabled || !self.logoView) {
-        return;
-    }
-
-    self.logoPulseActive =
-        YES;
-
+    self.logoPulseActive = YES;
     self.logoPulseGeneration++;
-
-    NSUInteger generation =
-        self.logoPulseGeneration;
+    NSUInteger generation = self.logoPulseGeneration;
 
     if (appearance.logoHapticEnabled) {
-        self.logoHapticGenerator =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:UIImpactFeedbackStyleHeavy];
-
+        self.logoHapticGenerator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
         [self.logoHapticGenerator prepare];
     }
 
-    CGFloat scale =
-        MAX(1.0, appearance.logoPulseScale);
+    CGFloat scale = MAX(1.0, appearance.logoPulseScale);
+    CGFloat firstDuration = MAX(0.05, appearance.logoPulseFirstDuration);
+    CGFloat secondDuration = MAX(0.05, appearance.logoPulseSecondDuration);
+    CGFloat pause = MAX(0.05, appearance.logoPulsePause);
 
-    CGFloat firstDuration =
-        MAX(0.05, appearance.logoPulseFirstDuration);
-
-    CGFloat secondDuration =
-        MAX(0.05, appearance.logoPulseSecondDuration);
-
-    CGFloat pause =
-        MAX(0.05, appearance.logoPulsePause);
-
-    CAKeyframeAnimation *pulse =
-        [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
-
-    pulse.values = @[
-        @1.0,
-        @(scale),
-        @1.0,
-        @(scale * 0.985),
-        @1.0
-    ];
-
-    pulse.keyTimes = @[
-        @0.0,
-        @0.16,
-        @0.32,
-        @0.45,
-        @1.0
-    ];
-
-    pulse.duration =
-        firstDuration + secondDuration + pause;
-
+    CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+    pulse.values = @[@1.0, @(scale), @1.0, @(scale * 0.985), @1.0];
+    pulse.keyTimes = @[@0.0, @0.16, @0.32, @0.45, @1.0];
+    pulse.duration = firstDuration + secondDuration + pause;
     pulse.timingFunctions = @[
         [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
         [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut],
         [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
         [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn]
     ];
+    pulse.repeatCount = HUGE_VALF;
+    pulse.removedOnCompletion = NO;
+    pulse.fillMode = kCAFillModeBoth;
 
-    pulse.repeatCount =
-        HUGE_VALF;
-
-    pulse.removedOnCompletion =
-        NO;
-
-    pulse.fillMode =
-        kCAFillModeBoth;
-
-    [self.logoView.layer
-        addAnimation:pulse
-              forKey:@"GeraKStoreWelcomeLogoPulse"];
+    [self.logoView.layer addAnimation:pulse forKey:@"GeraKStoreWelcomeLogoPulse"];
 
     if (appearance.logoHapticEnabled) {
-        [self performLogoHapticLoopWithDuration:pulse.duration
-                                     generation:generation];
+        [self performLogoHapticLoopWithDuration:pulse.duration generation:generation];
     }
 }
 
-- (void)performLogoHapticLoopWithDuration:(NSTimeInterval)duration
-                               generation:(NSUInteger)generation {
+- (void)performLogoHapticLoopWithDuration:(NSTimeInterval)duration generation:(NSUInteger)generation {
+    if (!self.logoPulseActive || generation != self.logoPulseGeneration || !self.logoView || !self.logoHapticGenerator) return;
 
-    if (!self.logoPulseActive ||
-        generation != self.logoPulseGeneration ||
-        !self.logoView ||
-        !self.logoHapticGenerator) {
-        return;
-    }
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+    if (!appearance.logoPulseEnabled || !appearance.logoHapticEnabled) return;
 
-    AppearanceConfig *appearance =
-        self.config.appearanceConfig;
+    NSTimeInterval firstImpactDelay = duration * 0.16;
+    NSTimeInterval secondImpactDelay = duration * 0.45;
 
-    if (!appearance.logoPulseEnabled ||
-        !appearance.logoHapticEnabled) {
-        return;
-    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(firstImpactDelay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (!self.logoPulseActive || generation != self.logoPulseGeneration || !self.logoHapticGenerator) return;
+        [self.logoHapticGenerator impactOccurred];
+        [self.logoHapticGenerator prepare];
 
-    NSTimeInterval firstImpactDelay =
-        duration * 0.16;
-
-    NSTimeInterval secondImpactDelay =
-        duration * 0.45;
-
-    dispatch_after(
-        dispatch_time(DISPATCH_TIME_NOW,
-                      (int64_t)(firstImpactDelay * NSEC_PER_SEC)),
-        dispatch_get_main_queue(), ^{
-
-            if (!self.logoPulseActive ||
-                generation != self.logoPulseGeneration ||
-                !self.logoView ||
-                !self.logoHapticGenerator) {
-                return;
-            }
-
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((secondImpactDelay - firstImpactDelay) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!self.logoPulseActive || generation != self.logoPulseGeneration || !self.logoHapticGenerator) return;
             [self.logoHapticGenerator impactOccurred];
             [self.logoHapticGenerator prepare];
 
-            NSTimeInterval delayBetweenImpacts =
-                secondImpactDelay - firstImpactDelay;
-
-            dispatch_after(
-                dispatch_time(DISPATCH_TIME_NOW,
-                              (int64_t)(delayBetweenImpacts * NSEC_PER_SEC)),
-                dispatch_get_main_queue(), ^{
-
-                    if (!self.logoPulseActive ||
-                        generation != self.logoPulseGeneration ||
-                        !self.logoView ||
-                        !self.logoHapticGenerator) {
-                        return;
-                    }
-
-                    [self.logoHapticGenerator impactOccurred];
-                    [self.logoHapticGenerator prepare];
-
-                    NSTimeInterval remaining =
-                        duration - secondImpactDelay;
-
-                    dispatch_after(
-                        dispatch_time(DISPATCH_TIME_NOW,
-                                      (int64_t)(remaining * NSEC_PER_SEC)),
-                        dispatch_get_main_queue(), ^{
-
-                            if (!self.logoPulseActive ||
-                                generation != self.logoPulseGeneration ||
-                                !self.logoView ||
-                                !self.logoHapticGenerator) {
-                                return;
-                            }
-
-                            [self performLogoHapticLoopWithDuration:duration
-                                                         generation:generation];
-                        });
-                });
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((duration - secondImpactDelay) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self performLogoHapticLoopWithDuration:duration generation:generation];
+            });
         });
+    });
 }
 
 - (void)stopLogoPulse {
-    self.logoPulseActive =
-        NO;
-
+    self.logoPulseActive = NO;
     self.logoPulseGeneration++;
-
-    [self.logoView.layer
-        removeAnimationForKey:@"GeraKStoreWelcomeLogoPulse"];
-
-    [self.logoHapticGenerator prepare];
-
-    self.logoHapticGenerator =
-        nil;
+    [self.logoView.layer removeAnimationForKey:@"GeraKStoreWelcomeLogoPulse"];
+    self.logoHapticGenerator = nil;
 }
 
 #pragma mark - Colors
 
 - (UIColor *)colorFromHex:(NSString *)hex {
-    if (![hex isKindOfClass:[NSString class]]) {
-        return nil;
-    }
+    if (![hex isKindOfClass:[NSString class]]) return nil;
 
-    NSString *clean =
-        [[hex stringByReplacingOccurrencesOfString:@"#"
-                                        withString:@""]
-            uppercaseString];
-
-    if (clean.length != 6 && clean.length != 8) {
-        return nil;
-    }
+    NSString *clean = [[hex stringByReplacingOccurrencesOfString:@"#" withString:@""] uppercaseString];
+    if (clean.length != 6 && clean.length != 8) return nil;
 
     unsigned int value = 0;
-
-    NSScanner *scanner =
-        [NSScanner scannerWithString:clean];
-
-    if (![scanner scanHexInt:&value]) {
-        return nil;
-    }
+    if (![[NSScanner scannerWithString:clean] scanHexInt:&value]) return nil;
 
     CGFloat r, g, b, a = 1.0;
-
     if (clean.length == 8) {
         r = ((value >> 24) & 0xFF) / 255.0;
         g = ((value >> 16) & 0xFF) / 255.0;
