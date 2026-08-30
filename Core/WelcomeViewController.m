@@ -47,6 +47,8 @@
     self.view.backgroundColor =
         UIColor.blackColor;
 
+    self.view.opaque = YES;
+
     [self setupBackground];
     [self setupDecorations];
     [self setupInterface];
@@ -71,7 +73,6 @@
     }
 
     if (self.continueGradientLayer) {
-
         self.continueGradientLayer.frame =
             self.continueButton.bounds;
 
@@ -80,7 +81,6 @@
     }
 
     if (self.glassHighlightLayer) {
-
         self.glassHighlightLayer.frame =
             self.glassView.bounds;
 
@@ -89,7 +89,6 @@
     }
 
     if (self.glassGlowLayer) {
-
         self.glassGlowLayer.frame =
             self.glassView.bounds;
 
@@ -100,7 +99,6 @@
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
-
     [self stopLogoPulse];
 }
 
@@ -113,7 +111,6 @@
 #pragma mark - Background
 
 - (void)setupBackground {
-
     AppearanceConfig *appearance =
         self.config.appearanceConfig;
 
@@ -124,23 +121,17 @@
         [NSMutableArray array];
 
     for (NSString *hex in colors) {
-
         UIColor *color =
             [self colorFromHex:hex];
 
         if (color) {
-            [cgColors addObject:
-                (id)color.CGColor];
+            [cgColors addObject:(id)color.CGColor];
         }
     }
 
     if (cgColors.count == 0) {
-
-        [cgColors addObject:
-            (id)UIColor.blackColor.CGColor];
-
-        [cgColors addObject:
-            (id)UIColor.darkGrayColor.CGColor];
+        [cgColors addObject:(id)UIColor.blackColor.CGColor];
+        [cgColors addObject:(id)UIColor.darkGrayColor.CGColor];
     }
 
     self.backgroundGradientLayer =
@@ -157,16 +148,14 @@
 
     [self.view.layer
         insertSublayer:self.backgroundGradientLayer
-        atIndex:0];
+               atIndex:0];
 }
 
 - (void)setupDecorations {
-
     AppearanceConfig *appearance =
         self.config.appearanceConfig;
 
     if (appearance.showStars) {
-
         self.starsLayer =
             [CALayer layer];
 
@@ -175,13 +164,9 @@
 
         NSInteger starCount = 55;
 
-        for (NSInteger i = 0;
-             i < starCount;
-             i++) {
-
+        for (NSInteger i = 0; i < starCount; i++) {
             CGFloat size =
-                1.0 +
-                ((CGFloat)arc4random_uniform(12) / 10.0);
+                1.0 + ((CGFloat)arc4random_uniform(12) / 10.0);
 
             CALayer *star =
                 [CALayer layer];
@@ -209,19 +194,15 @@
                 [UIColor.whiteColor
                     colorWithAlphaComponent:
                         0.18 +
-                        ((CGFloat)arc4random_uniform(55) /
-                         100.0)].CGColor;
+                        ((CGFloat)arc4random_uniform(55) / 100.0)].CGColor;
 
-            [self.starsLayer
-                addSublayer:star];
+            [self.starsLayer addSublayer:star];
         }
 
-        [self.view.layer
-            addSublayer:self.starsLayer];
+        [self.view.layer addSublayer:self.starsLayer];
     }
 
     if (appearance.showMountains) {
-
         self.mountainsLayer =
             [CAShapeLayer layer];
 
@@ -240,50 +221,26 @@
         CGFloat baseY =
             height * 0.88;
 
-        [path moveToPoint:
-            CGPointMake(0, baseY)];
-
-        [path addLineToPoint:
-            CGPointMake(width * 0.16,
-                        height * 0.70)];
-
-        [path addLineToPoint:
-            CGPointMake(width * 0.28,
-                        height * 0.80)];
-
-        [path addLineToPoint:
-            CGPointMake(width * 0.46,
-                        height * 0.58)];
-
-        [path addLineToPoint:
-            CGPointMake(width * 0.62,
-                        height * 0.77)];
-
-        [path addLineToPoint:
-            CGPointMake(width * 0.78,
-                        height * 0.63)];
-
-        [path addLineToPoint:
-            CGPointMake(width,
-                        height * 0.76)];
-
-        [path addLineToPoint:
-            CGPointMake(width, baseY)];
-
+        [path moveToPoint:CGPointMake(0, baseY)];
+        [path addLineToPoint:CGPointMake(width * 0.16, height * 0.70)];
+        [path addLineToPoint:CGPointMake(width * 0.28, height * 0.80)];
+        [path addLineToPoint:CGPointMake(width * 0.46, height * 0.58)];
+        [path addLineToPoint:CGPointMake(width * 0.62, height * 0.77)];
+        [path addLineToPoint:CGPointMake(width * 0.78, height * 0.63)];
+        [path addLineToPoint:CGPointMake(width, height * 0.76)];
+        [path addLineToPoint:CGPointMake(width, baseY)];
         [path closePath];
 
         self.mountainsLayer.path =
             path.CGPath;
 
         self.mountainsLayer.fillColor =
-            [UIColor.blackColor
-                colorWithAlphaComponent:0.20].CGColor;
+            [UIColor.blackColor colorWithAlphaComponent:0.20].CGColor;
 
         self.mountainsLayer.strokeColor =
             UIColor.clearColor.CGColor;
 
-        [self.view.layer
-            addSublayer:self.mountainsLayer];
+        [self.view.layer addSublayer:self.mountainsLayer];
     }
 }
 
@@ -297,37 +254,13 @@
     TextConfig *text =
         self.config.textConfig;
 
-    /*
-     * iOS 26:
-     * Настоящий системный Liquid Glass.
-     *
-     * Старые iOS:
-     * Совместимый UIBlurEffect fallback.
-     */
-
-    UIVisualEffect *glassEffect = nil;
-
-    if (@available(iOS 26.0, *)) {
-
-        UIGlassEffect *effect =
-            [UIGlassEffect effectWithStyle:
-                UIGlassEffectStyleClear];
-
-        effect.interactive = NO;
-
-        glassEffect =
-            effect;
-
-    } else {
-
-        glassEffect =
-            [UIBlurEffect effectWithStyle:
-                UIBlurEffectStyleSystemUltraThinMaterialDark];
-    }
+    // =====================================================
+    // УСТОЙЧИВОЕ ТЁМНОЕ GLASS
+    // Фиксит белый блок по центру
+    // =====================================================
 
     self.glassView =
-        [[UIVisualEffectView alloc]
-            initWithEffect:glassEffect];
+        [[UIVisualEffectView alloc] initWithEffect:nil];
 
     self.glassView.translatesAutoresizingMaskIntoConstraints =
         NO;
@@ -338,74 +271,103 @@
     self.glassView.layer.cornerRadius =
         appearance.glassCornerRadius;
 
-    /*
-     * ВАЖНО:
-     *
-     * Ширину НЕ меняем.
-     *
-     * Сохраняем:
-     *
-     * leading 20
-     * trailing 20
-     * максимум 520 pt
-     */
-
     self.glassView.clipsToBounds =
         YES;
 
-    if (@available(iOS 26.0, *)) {
+    self.glassView.layer.borderWidth =
+        appearance.glassBorderWidth > 0 ? appearance.glassBorderWidth : 0.8;
 
-        self.glassView.layer.borderWidth =
-            0.0;
+    self.glassView.layer.borderColor =
+        [self colorFromHex:
+            appearance.glassBorderColor ?: @"#FFFFFF55"].CGColor;
 
-        self.glassView.layer.borderColor =
-            UIColor.clearColor.CGColor;
+    self.glassView.layer.masksToBounds =
+        NO;
 
-    } else {
+    self.glassView.layer.shadowColor =
+        UIColor.blackColor.CGColor;
 
-        self.glassView.layer.borderWidth =
-            appearance.glassBorderWidth;
+    self.glassView.layer.shadowOpacity =
+        0.35;
 
-        self.glassView.layer.borderColor =
-            [self colorFromHex:
-                appearance.glassBorderColor].CGColor;
-    }
+    self.glassView.layer.shadowRadius =
+        28.0;
 
-    [self.view
-        addSubview:self.glassView];
+    self.glassView.layer.shadowOffset =
+        CGSizeMake(0, 16);
+
+    [self.view addSubview:self.glassView];
 
     [NSLayoutConstraint activateConstraints:@[
-
         [self.glassView.centerXAnchor
-            constraintEqualToAnchor:
-                self.view.centerXAnchor],
+            constraintEqualToAnchor:self.view.centerXAnchor],
 
         [self.glassView.centerYAnchor
-            constraintEqualToAnchor:
-                self.view.centerYAnchor],
+            constraintEqualToAnchor:self.view.centerYAnchor],
 
         [self.glassView.leadingAnchor
-            constraintEqualToAnchor:
-                self.view.leadingAnchor
-            constant:20.0],
+            constraintEqualToAnchor:self.view.leadingAnchor
+                           constant:20.0],
 
         [self.glassView.trailingAnchor
-            constraintEqualToAnchor:
-                self.view.trailingAnchor
-            constant:-20.0],
+            constraintEqualToAnchor:self.view.trailingAnchor
+                           constant:-20.0],
 
         [self.glassView.widthAnchor
             constraintLessThanOrEqualToConstant:520.0]
     ]];
 
-    /*
-     * На iOS 26 настоящий UIGlassEffect уже сам
-     * формирует стеклянный материал.
-     *
-     * На старых iOS оставляем дополнительный
-     * очень лёгкий tint для fallback.
-     */
+    // 1. Тёмная подложка (защита от белого)
+    UIView *darkBase =
+        [[UIView alloc] init];
 
+    darkBase.translatesAutoresizingMaskIntoConstraints =
+        NO;
+
+    darkBase.backgroundColor =
+        [UIColor colorWithRed:0.06
+                        green:0.05
+                         blue:0.12
+                        alpha:0.88];
+
+    darkBase.layer.cornerRadius =
+        appearance.glassCornerRadius;
+
+    darkBase.userInteractionEnabled =
+        NO;
+
+    [self.glassView.contentView insertSubview:darkBase atIndex:0];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [darkBase.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
+        [darkBase.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
+        [darkBase.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
+        [darkBase.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+    ]];
+
+    // 2. Blur
+    UIBlurEffect *blurEffect =
+        [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+
+    UIVisualEffectView *blurView =
+        [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+
+    blurView.translatesAutoresizingMaskIntoConstraints =
+        NO;
+
+    blurView.userInteractionEnabled =
+        NO;
+
+    [self.glassView.contentView insertSubview:blurView aboveSubview:darkBase];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [blurView.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
+        [blurView.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
+        [blurView.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
+        [blurView.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
+    ]];
+
+    // 3. Tint
     self.glassTintView =
         [[UIView alloc] init];
 
@@ -413,8 +375,7 @@
         NO;
 
     self.glassTintView.backgroundColor =
-        [UIColor colorWithWhite:1.0
-                          alpha:0.055];
+        [UIColor colorWithWhite:1.0 alpha:0.08];
 
     self.glassTintView.layer.cornerRadius =
         appearance.glassCornerRadius;
@@ -422,36 +383,16 @@
     self.glassTintView.userInteractionEnabled =
         NO;
 
-    [self.glassView.contentView
-        addSubview:self.glassTintView];
+    [self.glassView.contentView addSubview:self.glassTintView];
 
     [NSLayoutConstraint activateConstraints:@[
-
-        [self.glassTintView.topAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.topAnchor],
-
-        [self.glassTintView.bottomAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.bottomAnchor],
-
-        [self.glassTintView.leadingAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.leadingAnchor],
-
-        [self.glassTintView.trailingAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.trailingAnchor]
+        [self.glassTintView.topAnchor constraintEqualToAnchor:self.glassView.contentView.topAnchor],
+        [self.glassTintView.bottomAnchor constraintEqualToAnchor:self.glassView.contentView.bottomAnchor],
+        [self.glassTintView.leadingAnchor constraintEqualToAnchor:self.glassView.contentView.leadingAnchor],
+        [self.glassTintView.trailingAnchor constraintEqualToAnchor:self.glassView.contentView.trailingAnchor]
     ]];
 
-    if (@available(iOS 26.0, *)) {
-        self.glassTintView.hidden = YES;
-    }
-
-    /*
-     * Верхний стеклянный блик.
-     */
-
+    // 4. Блик
     self.glassHighlightLayer =
         [CAGradientLayer layer];
 
@@ -459,28 +400,22 @@
         @"glassHighlight";
 
     self.glassHighlightLayer.colors = @[
-
-        (id)[UIColor colorWithWhite:1.0
-                             alpha:0.28].CGColor,
-
-        (id)[UIColor colorWithWhite:1.0
-                             alpha:0.10].CGColor,
-
+        (id)[UIColor colorWithWhite:1.0 alpha:0.22].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.06].CGColor,
         (id)[UIColor clearColor].CGColor
     ];
 
     self.glassHighlightLayer.locations = @[
-
         @0.0,
-        @0.24,
-        @0.62
+        @0.22,
+        @0.55
     ];
 
     self.glassHighlightLayer.startPoint =
         CGPointMake(0.5, 0.0);
 
     self.glassHighlightLayer.endPoint =
-        CGPointMake(0.5, 0.62);
+        CGPointMake(0.5, 0.55);
 
     self.glassHighlightLayer.cornerRadius =
         appearance.glassCornerRadius;
@@ -488,75 +423,14 @@
     self.glassHighlightLayer.masksToBounds =
         YES;
 
-    /*
-     * На iOS 26 используем только нативный
-     * UIGlassEffect без дополнительных слоёв.
-     *
-     * Старые iOS получают совместимый
-     * highlight и лёгкий розовый glow.
-     */
+    [self.glassView.layer addSublayer:self.glassHighlightLayer];
 
-    if (!@available(iOS 26.0, *)) {
-
-        [self.glassView.layer
-            addSublayer:self.glassHighlightLayer];
-
-        self.glassGlowLayer =
-            [CAGradientLayer layer];
-
-        self.glassGlowLayer.name =
-            @"glassGlow";
-
-        UIColor *pink =
-            [self colorFromHex:@"#FF4FA3"];
-
-        self.glassGlowLayer.colors = @[
-
-            (id)[UIColor clearColor].CGColor,
-
-            (id)[pink
-                colorWithAlphaComponent:0.018].CGColor,
-
-            (id)[pink
-                colorWithAlphaComponent:0.045].CGColor
-        ];
-
-        self.glassGlowLayer.startPoint =
-            CGPointMake(0.0, 0.0);
-
-        self.glassGlowLayer.endPoint =
-            CGPointMake(1.0, 1.0);
-
-        self.glassGlowLayer.cornerRadius =
-            appearance.glassCornerRadius;
-
-        self.glassGlowLayer.masksToBounds =
-            YES;
-
-        [self.glassView.layer
-            addSublayer:self.glassGlowLayer];
-    }
-
-    /*
-     * Контент.
-     *
-     * ВАЖНО:
-     * Основная ширина карточки НЕ меняется.
-     */
-
+    // Контент
     self.contentStack =
         [[UIStackView alloc] init];
 
     self.contentStack.axis =
         UILayoutConstraintAxisVertical;
-
-    /*
-     * Fill позволяет строкам кнопок
-     * занимать всю доступную ширину.
-     *
-     * Для логотипа и текста ниже мы
-     * отдельно задаём центрирование.
-     */
 
     self.contentStack.alignment =
         UIStackViewAlignmentFill;
@@ -570,30 +444,24 @@
     self.contentStack.translatesAutoresizingMaskIntoConstraints =
         NO;
 
-    [self.glassView.contentView
-        addSubview:self.contentStack];
+    [self.glassView.contentView addSubview:self.contentStack];
 
     [NSLayoutConstraint activateConstraints:@[
-
         [self.contentStack.topAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.topAnchor
-            constant:appearance.logoTopOffset],
+            constraintEqualToAnchor:self.glassView.contentView.topAnchor
+                           constant:appearance.logoTopOffset],
 
         [self.contentStack.bottomAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.bottomAnchor
-            constant:-24.0],
+            constraintEqualToAnchor:self.glassView.contentView.bottomAnchor
+                           constant:-24.0],
 
         [self.contentStack.leadingAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.leadingAnchor
-            constant:24.0],
+            constraintEqualToAnchor:self.glassView.contentView.leadingAnchor
+                           constant:24.0],
 
         [self.contentStack.trailingAnchor
-            constraintEqualToAnchor:
-                self.glassView.contentView.trailingAnchor
-            constant:-24.0]
+            constraintEqualToAnchor:self.glassView.contentView.trailingAnchor
+                           constant:-24.0]
     ]];
 
     [self setupLogo];
@@ -612,7 +480,6 @@
 #pragma mark - Logo
 
 - (void)setupLogo {
-
     AppearanceConfig *appearance =
         self.config.appearanceConfig;
 
@@ -632,48 +499,31 @@
         [UIImage imageNamed:@"GeraKStoreWelcome.png"];
 
     if (!logo) {
-        logo =
-            [UIImage imageNamed:@"GeraKStoreWelcome"];
+        logo = [UIImage imageNamed:@"GeraKStoreWelcome"];
     }
 
     if (!logo) {
         logo =
             [EmbeddedResourceLoader
                 imageForResource:@"GeraKStoreWelcome"
-                extension:@"png"];
+                       extension:@"png"];
     }
 
     if (!logo) {
-        logo =
-            [UIImage imageNamed:@"AppIcon"];
+        logo = [UIImage imageNamed:@"AppIcon"];
     }
 
-    self.logoView.image =
-        logo;
+    self.logoView.image = logo;
 
-    [self.contentStack
-        addArrangedSubview:self.logoView];
-
-    /*
-     * Логотип оставляем увеличенным.
-     * Pulse не меняем.
-     */
+    [self.contentStack addArrangedSubview:self.logoView];
 
     CGFloat logoSize =
-        MAX(80.0,
-            appearance.logoSize + 15.0);
+        MAX(80.0, appearance.logoSize + 15.0);
 
     [NSLayoutConstraint activateConstraints:@[
-
-        [self.logoView.heightAnchor
-            constraintEqualToConstant:logoSize],
-
-        [self.logoView.widthAnchor
-            constraintEqualToConstant:logoSize],
-
-        [self.logoView.centerXAnchor
-            constraintEqualToAnchor:
-                self.contentStack.centerXAnchor]
+        [self.logoView.heightAnchor constraintEqualToConstant:logoSize],
+        [self.logoView.widthAnchor constraintEqualToConstant:logoSize],
+        [self.logoView.centerXAnchor constraintEqualToAnchor:self.contentStack.centerXAnchor]
     ]];
 
     self.logoView.layer.shadowColor =
@@ -692,7 +542,6 @@
 #pragma mark - Title
 
 - (void)setupTitle:(NSString *)title {
-
     self.titleLabel =
         [[UILabel alloc] init];
 
@@ -703,12 +552,10 @@
         title;
 
     self.titleLabel.textColor =
-        [self colorFromHex:
-            self.config.appearanceConfig.titleColor];
+        [self colorFromHex:self.config.appearanceConfig.titleColor];
 
     self.titleLabel.font =
-        [UIFont systemFontOfSize:30.0
-                          weight:UIFontWeightBold];
+        [UIFont systemFontOfSize:30.0 weight:UIFontWeightBold];
 
     self.titleLabel.textAlignment =
         NSTextAlignmentCenter;
@@ -716,14 +563,12 @@
     self.titleLabel.numberOfLines =
         0;
 
-    [self.contentStack
-        addArrangedSubview:self.titleLabel];
+    [self.contentStack addArrangedSubview:self.titleLabel];
 }
 
 #pragma mark - Subtitle
 
 - (void)setupSubtitle:(NSString *)subtitle {
-
     self.subtitleLabel =
         [[UILabel alloc] init];
 
@@ -734,12 +579,10 @@
         subtitle;
 
     self.subtitleLabel.textColor =
-        [self colorFromHex:
-            self.config.appearanceConfig.subtitleColor];
+        [self colorFromHex:self.config.appearanceConfig.subtitleColor];
 
     self.subtitleLabel.font =
-        [UIFont systemFontOfSize:16.0
-                          weight:UIFontWeightRegular];
+        [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
 
     self.subtitleLabel.textAlignment =
         NSTextAlignmentCenter;
@@ -747,24 +590,14 @@
     self.subtitleLabel.numberOfLines =
         0;
 
-    [self.contentStack
-        addArrangedSubview:self.subtitleLabel];
+    [self.contentStack addArrangedSubview:self.subtitleLabel];
 }
 
 #pragma mark - Social Buttons
 
 - (void)setupSocialButtons {
-
     TextConfig *text =
         self.config.textConfig;
-
-    /*
-     * Telegram + GitHub всегда занимают
-     * всю доступную ширину карточки.
-     *
-     * Каждая кнопка получает половину
-     * ширины за вычетом gap.
-     */
 
     self.socialStack =
         [[UIStackView alloc] init];
@@ -785,42 +618,25 @@
         NO;
 
     self.telegramButton =
-        [self createGlassButtonWithTitle:
-            text.telegramButton];
+        [self createGlassButtonWithTitle:text.telegramButton];
 
     self.githubButton =
-        [self createGlassButtonWithTitle:
-            text.githubButton];
+        [self createGlassButtonWithTitle:text.githubButton];
 
-    [self.socialStack
-        addArrangedSubview:self.telegramButton];
+    [self.socialStack addArrangedSubview:self.telegramButton];
+    [self.socialStack addArrangedSubview:self.githubButton];
 
-    [self.socialStack
-        addArrangedSubview:self.githubButton];
-
-    [self.contentStack
-        addArrangedSubview:self.socialStack];
-
-    /*
-     * Явно связываем ширину с внутренней
-     * шириной основной карточки.
-     */
+    [self.contentStack addArrangedSubview:self.socialStack];
 
     [NSLayoutConstraint activateConstraints:@[
-
-        [self.socialStack.widthAnchor
-            constraintEqualToAnchor:
-                self.contentStack.widthAnchor],
-
-        [self.socialStack.heightAnchor
-            constraintEqualToConstant:50.0]
+        [self.socialStack.widthAnchor constraintEqualToAnchor:self.contentStack.widthAnchor],
+        [self.socialStack.heightAnchor constraintEqualToConstant:50.0]
     ]];
 }
 
 #pragma mark - Continue
 
 - (void)setupContinueButton {
-
     TextConfig *text =
         self.config.textConfig;
 
@@ -828,35 +644,20 @@
         self.config.appearanceConfig;
 
     self.continueButton =
-        [self createPrimaryButtonWithTitle:
-            text.continueButton
-                                       colors:
-            appearance.primaryGradient];
+        [self createPrimaryButtonWithTitle:text.continueButton
+                                    colors:appearance.primaryGradient];
 
-    [self.contentStack
-        addArrangedSubview:self.continueButton];
-
-    /*
-     * Продолжить имеет абсолютно ту же
-     * доступную ширину, что и верхний ряд.
-     */
+    [self.contentStack addArrangedSubview:self.continueButton];
 
     [NSLayoutConstraint activateConstraints:@[
-
-        [self.continueButton.widthAnchor
-            constraintEqualToAnchor:
-                self.contentStack.widthAnchor],
-
-        [self.continueButton.heightAnchor
-            constraintEqualToConstant:
-                appearance.buttonHeight]
+        [self.continueButton.widthAnchor constraintEqualToAnchor:self.contentStack.widthAnchor],
+        [self.continueButton.heightAnchor constraintEqualToConstant:appearance.buttonHeight]
     ]];
 }
 
 #pragma mark - Don't Show Again
 
 - (void)setupDontShowAgain:(NSString *)title {
-
     self.dontShowAgainButton =
         [UIButton buttonWithType:UIButtonTypeSystem];
 
@@ -868,135 +669,65 @@
         forState:UIControlStateNormal];
 
     [self.dontShowAgainButton
-        setTitleColor:
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.55]
-        forState:UIControlStateNormal];
+        setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.55]
+             forState:UIControlStateNormal];
 
     self.dontShowAgainButton.titleLabel.font =
-        [UIFont systemFontOfSize:13.0
-                          weight:UIFontWeightMedium];
+        [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
 
-    [self.contentStack
-        addArrangedSubview:self.dontShowAgainButton];
+    [self.contentStack addArrangedSubview:self.dontShowAgainButton];
 
     [NSLayoutConstraint activateConstraints:@[
-
-        [self.dontShowAgainButton.heightAnchor
-            constraintEqualToConstant:30.0]
+        [self.dontShowAgainButton.heightAnchor constraintEqualToConstant:30.0]
     ]];
 }
 
 #pragma mark - Buttons
 
 - (UIButton *)createGlassButtonWithTitle:(NSString *)title {
-
-    UIButton *button = nil;
-
-    /*
-     * iOS 26:
-     * Нативный Liquid Glass.
-     *
-     * Старые iOS:
-     * Прежний совместимый glass-style.
-     */
-
-    if (@available(iOS 26.0, *)) {
-
-        UIButtonConfiguration *configuration =
-            [UIButtonConfiguration glassButtonConfiguration];
-
-        configuration.title =
-            title;
-
-        configuration.baseForegroundColor =
-            UIColor.whiteColor;
-
-        configuration.cornerStyle =
-            UIButtonConfigurationCornerStyleCapsule;
-
-        configuration.contentInsets =
-            NSDirectionalEdgeInsetsMake(
-                0.0,
-                18.0,
-                0.0,
-                18.0
-            );
-
-        button =
-            [UIButton buttonWithConfiguration:
-                configuration
-                              primaryAction:nil];
-
-        button.configurationUpdateHandler =
-            ^(UIButton *updatedButton) {
-
-                UIButtonConfiguration *current =
-                    updatedButton.configuration;
-
-                current.baseForegroundColor =
-                    UIColor.whiteColor;
-
-                updatedButton.configuration =
-                    current;
-            };
-
-    } else {
-
-        button =
-            [UIButton buttonWithType:UIButtonTypeSystem];
-
-        button.translatesAutoresizingMaskIntoConstraints =
-            NO;
-
-        [button setTitle:title
-                forState:UIControlStateNormal];
-
-        [button setTitleColor:
-            UIColor.whiteColor
-            forState:UIControlStateNormal];
-
-        [button setTitleColor:
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.72]
-            forState:UIControlStateHighlighted];
-
-        button.titleLabel.font =
-            [UIFont systemFontOfSize:15.0
-                              weight:UIFontWeightSemibold];
-
-        button.backgroundColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.065];
-
-        button.layer.cornerRadius =
-            18.0;
-
-        button.layer.masksToBounds =
-            NO;
-
-        button.layer.borderWidth =
-            1.0;
-
-        button.layer.borderColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.14].CGColor;
-
-        button.layer.shadowColor =
-            UIColor.blackColor.CGColor;
-
-        button.layer.shadowOpacity =
-            0.16;
-
-        button.layer.shadowRadius =
-            12.0;
-
-        button.layer.shadowOffset =
-            CGSizeMake(0, 5);
-    }
+    UIButton *button =
+        [UIButton buttonWithType:UIButtonTypeSystem];
 
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
+
+    [button setTitle:title forState:UIControlStateNormal];
+
+    [button setTitleColor:UIColor.whiteColor
+                 forState:UIControlStateNormal];
+
+    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.72]
+                 forState:UIControlStateHighlighted];
+
+    button.titleLabel.font =
+        [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+
+    button.backgroundColor =
+        [UIColor.whiteColor colorWithAlphaComponent:0.065];
+
+    button.layer.cornerRadius =
+        18.0;
+
+    button.layer.masksToBounds =
+        NO;
+
+    button.layer.borderWidth =
+        1.0;
+
+    button.layer.borderColor =
+        [UIColor.whiteColor colorWithAlphaComponent:0.14].CGColor;
+
+    button.layer.shadowColor =
+        UIColor.blackColor.CGColor;
+
+    button.layer.shadowOpacity =
+        0.16;
+
+    button.layer.shadowRadius =
+        12.0;
+
+    button.layer.shadowOffset =
+        CGSizeMake(0, 5);
 
     return button;
 }
@@ -1004,132 +735,67 @@
 - (UIButton *)createPrimaryButtonWithTitle:(NSString *)title
                                     colors:(NSArray<NSString *> *)colors {
 
-    UIButton *button = nil;
-
-    /*
-     * iOS 26:
-     * Prominent Liquid Glass.
-     */
-
-    if (@available(iOS 26.0, *)) {
-
-        UIButtonConfiguration *configuration =
-            [UIButtonConfiguration
-                prominentGlassButtonConfiguration];
-
-        configuration.title =
-            title;
-
-        configuration.baseForegroundColor =
-            UIColor.whiteColor;
-
-        configuration.cornerStyle =
-            UIButtonConfigurationCornerStyleCapsule;
-
-        configuration.contentInsets =
-            NSDirectionalEdgeInsetsMake(
-                0.0,
-                20.0,
-                0.0,
-                20.0
-            );
-
-        button =
-            [UIButton buttonWithConfiguration:
-                configuration
-                              primaryAction:nil];
-
-        button.configurationUpdateHandler =
-            ^(UIButton *updatedButton) {
-
-                UIButtonConfiguration *current =
-                    updatedButton.configuration;
-
-                current.baseForegroundColor =
-                    UIColor.whiteColor;
-
-                updatedButton.configuration =
-                    current;
-            };
-
-    } else {
-
-        button =
-            [UIButton buttonWithType:UIButtonTypeSystem];
-
-        button.translatesAutoresizingMaskIntoConstraints =
-            NO;
-
-        [button setTitle:title
-                forState:UIControlStateNormal];
-
-        [button setTitleColor:
-            UIColor.whiteColor
-            forState:UIControlStateNormal];
-
-        [button setTitleColor:
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.80]
-            forState:UIControlStateHighlighted];
-
-        button.titleLabel.font =
-            [UIFont systemFontOfSize:17.0
-                              weight:UIFontWeightBold];
-
-        button.layer.cornerRadius =
-            18.0;
-
-        CAGradientLayer *gradient =
-            [CAGradientLayer layer];
-
-        NSMutableArray *cgColors =
-            [NSMutableArray array];
-
-        for (NSString *hex in colors) {
-
-            UIColor *color =
-                [self colorFromHex:hex];
-
-            if (color) {
-                [cgColors addObject:
-                    (id)color.CGColor];
-            }
-        }
-
-        if (cgColors.count > 0) {
-            gradient.colors =
-                cgColors;
-        }
-
-        gradient.startPoint =
-            CGPointMake(0.0, 0.5);
-
-        gradient.endPoint =
-            CGPointMake(1.0, 0.5);
-
-        self.continueGradientLayer =
-            gradient;
-
-        [button.layer
-            insertSublayer:gradient
-            atIndex:0];
-
-        button.layer.shadowColor =
-            [self colorFromHex:
-                @"#FF4FA3"].CGColor;
-
-        button.layer.shadowOpacity =
-            0.24;
-
-        button.layer.shadowRadius =
-            14.0;
-
-        button.layer.shadowOffset =
-            CGSizeMake(0, 6);
-    }
+    UIButton *button =
+        [UIButton buttonWithType:UIButtonTypeSystem];
 
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
+
+    [button setTitle:title forState:UIControlStateNormal];
+
+    [button setTitleColor:UIColor.whiteColor
+                 forState:UIControlStateNormal];
+
+    [button setTitleColor:[UIColor.whiteColor colorWithAlphaComponent:0.80]
+                 forState:UIControlStateHighlighted];
+
+    button.titleLabel.font =
+        [UIFont systemFontOfSize:17.0 weight:UIFontWeightBold];
+
+    button.layer.cornerRadius =
+        18.0;
+
+    CAGradientLayer *gradient =
+        [CAGradientLayer layer];
+
+    NSMutableArray *cgColors =
+        [NSMutableArray array];
+
+    for (NSString *hex in colors) {
+        UIColor *color =
+            [self colorFromHex:hex];
+
+        if (color) {
+            [cgColors addObject:(id)color.CGColor];
+        }
+    }
+
+    if (cgColors.count > 0) {
+        gradient.colors = cgColors;
+    }
+
+    gradient.startPoint =
+        CGPointMake(0.0, 0.5);
+
+    gradient.endPoint =
+        CGPointMake(1.0, 0.5);
+
+    self.continueGradientLayer =
+        gradient;
+
+    [button.layer insertSublayer:gradient atIndex:0];
+
+    button.layer.shadowColor =
+        [self colorFromHex:@"#FF4FA3"].CGColor;
+
+    button.layer.shadowOpacity =
+        0.24;
+
+    button.layer.shadowRadius =
+        14.0;
+
+    button.layer.shadowOffset =
+        CGSizeMake(0, 6);
 
     return button;
 }
@@ -1137,64 +803,48 @@
 #pragma mark - Actions
 
 - (void)setupActions {
-
     [self.telegramButton
         addTarget:self
-        action:@selector(openTelegram)
-        forControlEvents:UIControlEventTouchUpInside];
+           action:@selector(openTelegram)
+ forControlEvents:UIControlEventTouchUpInside];
 
     [self.githubButton
         addTarget:self
-        action:@selector(openGitHub)
-        forControlEvents:UIControlEventTouchUpInside];
+           action:@selector(openGitHub)
+ forControlEvents:UIControlEventTouchUpInside];
 
     [self.continueButton
         addTarget:self
-        action:@selector(continuePressed)
-        forControlEvents:UIControlEventTouchUpInside];
+           action:@selector(continuePressed)
+ forControlEvents:UIControlEventTouchUpInside];
 
     [self.dontShowAgainButton
         addTarget:self
-        action:@selector(dontShowAgainPressed)
-        forControlEvents:UIControlEventTouchUpInside];
+           action:@selector(dontShowAgainPressed)
+ forControlEvents:UIControlEventTouchUpInside];
 }
 
 - (void)openTelegram {
-
-    NSString *urlString =
-        self.config.linksConfig.telegram;
-
-    [self openURLString:urlString];
+    [self openURLString:self.config.linksConfig.telegram];
 }
 
 - (void)openGitHub {
-
-    NSString *urlString =
-        self.config.linksConfig.github;
-
-    [self openURLString:urlString];
+    [self openURLString:self.config.linksConfig.github];
 }
 
 - (void)continuePressed {
-
     [self stopLogoPulse];
-
-    [self dismissViewControllerAnimated:YES
-                             completion:nil];
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void)dontShowAgainPressed {
-
     [UserDefaultsWelcome markWelcomeAsSeen];
-
-    [self dismissViewControllerAnimated:YES
-                             completion:nil];
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 #pragma mark - URL
 
 - (void)openURLString:(NSString *)string {
-
     if (string.length == 0) {
         return;
     }
@@ -1207,23 +857,18 @@
     }
 
     if (@available(iOS 10.0, *)) {
-
         [[UIApplication sharedApplication]
             openURL:url
             options:@{}
-            completionHandler:nil];
-
+  completionHandler:nil];
     } else {
-
-        [[UIApplication sharedApplication]
-            openURL:url];
+        [[UIApplication sharedApplication] openURL:url];
     }
 }
 
 #pragma mark - Animation
 
 - (void)animateInterface {
-
     if (!self.config.appConfig.animationEnabled) {
         return;
     }
@@ -1238,26 +883,21 @@
                           delay:0.05
                         options:UIViewAnimationOptionCurveEaseOut
                      animations:^{
-
         self.glassView.alpha =
             1.0;
 
         self.glassView.transform =
             CGAffineTransformIdentity;
-
     } completion:nil];
 }
 
 #pragma mark - Logo Pulse
 
 - (void)setupLogoPulse {
-
     AppearanceConfig *appearance =
         self.config.appearanceConfig;
 
-    if (!appearance.logoPulseEnabled ||
-        !self.logoView) {
-
+    if (!appearance.logoPulseEnabled || !self.logoView) {
         return;
     }
 
@@ -1270,7 +910,6 @@
         self.logoPulseGeneration;
 
     if (appearance.logoHapticEnabled) {
-
         self.logoHapticGenerator =
             [[UIImpactFeedbackGenerator alloc]
                 initWithStyle:UIImpactFeedbackStyleHeavy];
@@ -1279,27 +918,21 @@
     }
 
     CGFloat scale =
-        MAX(1.0,
-            appearance.logoPulseScale);
+        MAX(1.0, appearance.logoPulseScale);
 
     CGFloat firstDuration =
-        MAX(0.05,
-            appearance.logoPulseFirstDuration);
+        MAX(0.05, appearance.logoPulseFirstDuration);
 
     CGFloat secondDuration =
-        MAX(0.05,
-            appearance.logoPulseSecondDuration);
+        MAX(0.05, appearance.logoPulseSecondDuration);
 
     CGFloat pause =
-        MAX(0.05,
-            appearance.logoPulsePause);
+        MAX(0.05, appearance.logoPulsePause);
 
     CAKeyframeAnimation *pulse =
-        [CAKeyframeAnimation
-            animationWithKeyPath:@"transform.scale"];
+        [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
 
     pulse.values = @[
-
         @1.0,
         @(scale),
         @1.0,
@@ -1308,7 +941,6 @@
     ];
 
     pulse.keyTimes = @[
-
         @0.0,
         @0.16,
         @0.32,
@@ -1317,27 +949,13 @@
     ];
 
     pulse.duration =
-        firstDuration +
-        secondDuration +
-        pause;
+        firstDuration + secondDuration + pause;
 
     pulse.timingFunctions = @[
-
-        [CAMediaTimingFunction
-            functionWithName:
-                kCAMediaTimingFunctionEaseOut],
-
-        [CAMediaTimingFunction
-            functionWithName:
-                kCAMediaTimingFunctionEaseInEaseOut],
-
-        [CAMediaTimingFunction
-            functionWithName:
-                kCAMediaTimingFunctionEaseOut],
-
-        [CAMediaTimingFunction
-            functionWithName:
-                kCAMediaTimingFunctionEaseIn]
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn]
     ];
 
     pulse.repeatCount =
@@ -1351,24 +969,21 @@
 
     [self.logoView.layer
         addAnimation:pulse
-        forKey:@"GeraKStoreWelcomeLogoPulse"];
+              forKey:@"GeraKStoreWelcomeLogoPulse"];
 
     if (appearance.logoHapticEnabled) {
-
-        [self performLogoHapticLoopWithDuration:
-            pulse.duration
-                                    generation:generation];
+        [self performLogoHapticLoopWithDuration:pulse.duration
+                                     generation:generation];
     }
 }
 
 - (void)performLogoHapticLoopWithDuration:(NSTimeInterval)duration
-                                generation:(NSUInteger)generation {
+                               generation:(NSUInteger)generation {
 
     if (!self.logoPulseActive ||
         generation != self.logoPulseGeneration ||
         !self.logoView ||
         !self.logoHapticGenerator) {
-
         return;
     }
 
@@ -1377,7 +992,6 @@
 
     if (!appearance.logoPulseEnabled ||
         !appearance.logoHapticEnabled) {
-
         return;
     }
 
@@ -1388,97 +1002,70 @@
         duration * 0.45;
 
     dispatch_after(
-        dispatch_time(
-            DISPATCH_TIME_NOW,
-            (int64_t)
-            (firstImpactDelay * NSEC_PER_SEC)
-        ),
+        dispatch_time(DISPATCH_TIME_NOW,
+                      (int64_t)(firstImpactDelay * NSEC_PER_SEC)),
         dispatch_get_main_queue(), ^{
 
             if (!self.logoPulseActive ||
                 generation != self.logoPulseGeneration ||
                 !self.logoView ||
                 !self.logoHapticGenerator) {
-
                 return;
             }
 
-            [self.logoHapticGenerator
-                impactOccurred];
-
-            [self.logoHapticGenerator
-                prepare];
+            [self.logoHapticGenerator impactOccurred];
+            [self.logoHapticGenerator prepare];
 
             NSTimeInterval delayBetweenImpacts =
-                secondImpactDelay -
-                firstImpactDelay;
+                secondImpactDelay - firstImpactDelay;
 
             dispatch_after(
-                dispatch_time(
-                    DISPATCH_TIME_NOW,
-                    (int64_t)
-                    (delayBetweenImpacts *
-                     NSEC_PER_SEC)
-                ),
+                dispatch_time(DISPATCH_TIME_NOW,
+                              (int64_t)(delayBetweenImpacts * NSEC_PER_SEC)),
                 dispatch_get_main_queue(), ^{
 
                     if (!self.logoPulseActive ||
                         generation != self.logoPulseGeneration ||
                         !self.logoView ||
                         !self.logoHapticGenerator) {
-
                         return;
                     }
 
-                    [self.logoHapticGenerator
-                        impactOccurred];
-
-                    [self.logoHapticGenerator
-                        prepare];
+                    [self.logoHapticGenerator impactOccurred];
+                    [self.logoHapticGenerator prepare];
 
                     NSTimeInterval remaining =
-                        duration -
-                        secondImpactDelay;
+                        duration - secondImpactDelay;
 
                     dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)
-                            (remaining *
-                             NSEC_PER_SEC)
-                        ),
+                        dispatch_time(DISPATCH_TIME_NOW,
+                                      (int64_t)(remaining * NSEC_PER_SEC)),
                         dispatch_get_main_queue(), ^{
 
                             if (!self.logoPulseActive ||
                                 generation != self.logoPulseGeneration ||
                                 !self.logoView ||
                                 !self.logoHapticGenerator) {
-
                                 return;
                             }
 
-                            [self performLogoHapticLoopWithDuration:
-                                duration
-                                                        generation:
-                                generation];
+                            [self performLogoHapticLoopWithDuration:duration
+                                                         generation:generation];
                         });
                 });
         });
 }
 
 - (void)stopLogoPulse {
-
     self.logoPulseActive =
         NO;
 
     self.logoPulseGeneration++;
 
     [self.logoView.layer
-        removeAnimationForKey:
-            @"GeraKStoreWelcomeLogoPulse"];
+        removeAnimationForKey:@"GeraKStoreWelcomeLogoPulse"];
 
-    [self.logoHapticGenerator
-        prepare];
+    [self.logoHapticGenerator prepare];
 
     self.logoHapticGenerator =
         nil;
@@ -1487,25 +1074,20 @@
 #pragma mark - Colors
 
 - (UIColor *)colorFromHex:(NSString *)hex {
-
     if (![hex isKindOfClass:[NSString class]]) {
         return nil;
     }
 
     NSString *clean =
-        [[hex
-            stringByReplacingOccurrencesOfString:@"#"
-                                       withString:@""]
+        [[hex stringByReplacingOccurrencesOfString:@"#"
+                                        withString:@""]
             uppercaseString];
 
-    if (clean.length != 6 &&
-        clean.length != 8) {
-
+    if (clean.length != 6 && clean.length != 8) {
         return nil;
     }
 
-    unsigned int value =
-        0;
+    unsigned int value = 0;
 
     NSScanner *scanner =
         [NSScanner scannerWithString:clean];
@@ -1514,41 +1096,20 @@
         return nil;
     }
 
-    CGFloat r;
-    CGFloat g;
-    CGFloat b;
-    CGFloat a = 1.0;
+    CGFloat r, g, b, a = 1.0;
 
     if (clean.length == 8) {
-
-        r =
-            ((value >> 24) & 0xFF) / 255.0;
-
-        g =
-            ((value >> 16) & 0xFF) / 255.0;
-
-        b =
-            ((value >> 8) & 0xFF) / 255.0;
-
-        a =
-            (value & 0xFF) / 255.0;
-
+        r = ((value >> 24) & 0xFF) / 255.0;
+        g = ((value >> 16) & 0xFF) / 255.0;
+        b = ((value >> 8) & 0xFF) / 255.0;
+        a = (value & 0xFF) / 255.0;
     } else {
-
-        r =
-            ((value >> 16) & 0xFF) / 255.0;
-
-        g =
-            ((value >> 8) & 0xFF) / 255.0;
-
-        b =
-            (value & 0xFF) / 255.0;
+        r = ((value >> 16) & 0xFF) / 255.0;
+        g = ((value >> 8) & 0xFF) / 255.0;
+        b = (value & 0xFF) / 255.0;
     }
 
-    return [UIColor colorWithRed:r
-                           green:g
-                            blue:b
-                           alpha:a];
+    return [UIColor colorWithRed:r green:g blue:b alpha:a];
 }
 
 @end
