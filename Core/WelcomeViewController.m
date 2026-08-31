@@ -36,6 +36,9 @@
 @property (nonatomic, strong) UIStackView *contentStack;
 @property (nonatomic, strong) UIStackView *socialStack;
 
+@property (nonatomic, strong) UIImpactFeedbackGenerator *heartbeatFeedback;
+@property (nonatomic, assign) BOOL heartbeatActive;
+
 @end
 
 @implementation WelcomeViewController
@@ -716,6 +719,8 @@
 
 - (void)stopMotionEffects {
 
+    self.heartbeatActive = NO;
+
     self.motionActive = NO;
 
     if (self.motionManager) {
@@ -1384,32 +1389,202 @@
             }
 
             /*
-             * Сердцебиение только логотипа.
-             *
-             * Карточка больше не масштабируется.
+             * Запускаем отдельное сердцебиение логотипа.
+             */
+
+            self.heartbeatActive =
+                YES;
+
+            if (@available(iOS 10.0, *)) {
+
+                self.heartbeatFeedback =
+                    [[UIImpactFeedbackGenerator alloc]
+                        initWithStyle:UIImpactFeedbackStyleLight];
+
+                [self.heartbeatFeedback prepare];
+            }
+
+            [self heartbeatLoop];
+        }];
+}
+
+- (void)heartbeatLoop {
+
+    if (!self.heartbeatActive ||
+        !self.logoView) {
+        return;
+    }
+
+    /*
+     * Начальное состояние.
+     */
+
+    self.logoView.transform =
+        CGAffineTransformIdentity;
+
+    /*
+     * ТУК.
+     *
+     * Первый визуальный удар.
+     */
+
+    if (@available(iOS 10.0, *)) {
+
+        [self.heartbeatFeedback
+            impactOccurred];
+
+        [self.heartbeatFeedback
+            prepare];
+    }
+
+    [UIView animateWithDuration:
+        0.115
+        delay:0.0
+        options:
+            UIViewAnimationOptionAllowUserInteraction |
+            UIViewAnimationOptionBeginFromCurrentState |
+            UIViewAnimationOptionCurveEaseOut
+        animations:^{
+
+            self.logoView.transform =
+                CGAffineTransformMakeScale(
+                    1.055,
+                    1.055
+                );
+
+        }
+        completion:^(BOOL finished) {
+
+            if (!self.heartbeatActive ||
+                !self.logoView) {
+                return;
+            }
+
+            /*
+             * Возврат после первого удара.
              */
 
             [UIView animateWithDuration:
-                1.35
-                delay:0.15
+                0.105
+                delay:0.0
                 options:
                     UIViewAnimationOptionAllowUserInteraction |
                     UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionAutoreverse |
-                    UIViewAnimationOptionRepeat |
-                    UIViewAnimationOptionCurveEaseInOut
+                    UIViewAnimationOptionCurveEaseIn
                 animations:^{
 
                     self.logoView.transform =
-                        CGAffineTransformMakeScale(
-                            1.045,
-                            1.045
-                        );
+                        CGAffineTransformIdentity;
 
                 }
-                completion:nil];
+                completion:^(BOOL finished) {
+
+                    if (!self.heartbeatActive ||
+                        !self.logoView) {
+                        return;
+                    }
+
+                    /*
+                     * Короткая пауза между двумя ударами.
+                     */
+
+                    [UIView animateWithDuration:
+                        0.10
+                        delay:0.08
+                        options:
+                            UIViewAnimationOptionAllowUserInteraction
+                        animations:^{
+
+                        }
+                        completion:^(BOOL finished) {
+
+                            if (!self.heartbeatActive ||
+                                !self.logoView) {
+                                return;
+                            }
+
+                            /*
+                             * ТУК.
+                             *
+                             * Второй визуальный удар.
+                             */
+
+                            if (@available(iOS 10.0, *)) {
+
+                                [self.heartbeatFeedback
+                                    impactOccurred];
+
+                                [self.heartbeatFeedback
+                                    prepare];
+                            }
+
+                            [UIView animateWithDuration:
+                                0.115
+                                delay:0.0
+                                options:
+                                    UIViewAnimationOptionAllowUserInteraction |
+                                    UIViewAnimationOptionBeginFromCurrentState |
+                                    UIViewAnimationOptionCurveEaseOut
+                                animations:^{
+
+                                    self.logoView.transform =
+                                        CGAffineTransformMakeScale(
+                                            1.045,
+                                            1.045
+                                        );
+
+                                }
+                                completion:^(BOOL finished) {
+
+                                    if (!self.heartbeatActive ||
+                                        !self.logoView) {
+                                        return;
+                                    }
+
+                                    [UIView animateWithDuration:
+                                        0.105
+                                        delay:0.0
+                                        options:
+                                            UIViewAnimationOptionAllowUserInteraction |
+                                            UIViewAnimationOptionBeginFromCurrentState |
+                                            UIViewAnimationOptionCurveEaseIn
+                                        animations:^{
+
+                                            self.logoView.transform =
+                                                CGAffineTransformIdentity;
+
+                                        }
+                                        completion:^(BOOL finished) {
+
+                                            if (!self.heartbeatActive ||
+                                                !self.logoView) {
+                                                return;
+                                            }
+
+                                            /*
+                                             * Большая пауза до
+                                             * следующего "тук-тук".
+                                             */
+
+                                            [UIView animateWithDuration:
+                                                0.95
+                                                delay:0.0
+                                                options:
+                                                    UIViewAnimationOptionAllowUserInteraction
+                                                animations:^{
+
+                                                }
+                                                completion:^(BOOL finished) {
+
+                                                    [self heartbeatLoop];
+                                                }];
+                                        }];
+                                }];
+                        }];
+                }];
         }];
 }
+
 
 #pragma mark - Color
 
