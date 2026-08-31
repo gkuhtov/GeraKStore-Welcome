@@ -1,0 +1,143 @@
+name: Inject GeraKStoreWelcome into IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inject:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare test IPA
+        run: |
+          set -e
+
+          mkdir -p work/Payload
+
+          if [ ! -f GeraKMusic.ipa ]; then
+            echo "ERROR: GeraKMusic.ipa not found in repository"
+            exit 1
+          fi
+
+          unzip -q GeraKMusic.ipa -d work
+
+          APP=$(find work/Payload -maxdepth 1 -type d -name "*.app" | head -n 1)
+
+          if [ -z "$APP" ]; then
+            echo "ERROR: .app not found"
+            exit 1
+          fi
+
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Install GeraKStoreWelcome
+        run: |
+          set -e
+
+          mkdir -p "$APP/Frameworks"
+
+          cp GeraKStoreWelcome.dylib \
+             "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          chmod 755 \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+      - name: Inspect original Vively
+        run: |
+          set -e
+
+          EXECUTABLE=$(/usr/libexec/PlistBuddy \
+            -c "Print :CFBundleExecutable" \
+            "$APP/Info.plist")
+
+          echo "Executable: $EXECUTABLE"
+
+          xcrun otool -L "$APP/$EXECUTABLE"
+
+          echo
+          echo "=== RPATH ==="
+
+          xcrun otool -l "$APP/$EXECUTABLE" |
+            grep -A3 LC_RPATH || true
+
+          echo "EXECUTABLE=$EXECUTABLE" >> "$GITHUB_ENV"
+
+      - name: Add GeraKStoreWelcome load command
+        run: |
+          set -e
+
+          echo "=== BEFORE ==="
+
+          xcrun otool -L "$APP/$EXECUTABLE"
+
+          echo
+          echo "=== INSTALL NAME TOOL ==="
+
+          xcrun install_name_tool \
+            -add_rpath "@executable_path/Frameworks" \
+            "$APP/$EXECUTABLE" || true
+
+          xcrun install_name_tool \
+            -change \
+            "@rpath/GeraKStoreWelcome.dylib" \
+            "@rpath/GeraKStoreWelcome.dylib" \
+            "$APP/$EXECUTABLE" || true
+
+      - name: Verify whether dylib is loaded
+        run: |
+          set -e
+
+          echo "=== LOAD COMMANDS ==="
+
+          xcrun otool -L "$APP/$EXECUTABLE"
+
+          echo
+          echo "=== SEARCH GeraKStoreWelcome ==="
+
+          if xcrun otool -L "$APP/$EXECUTABLE" |
+             grep -F "GeraKStoreWelcome.dylib"; then
+
+            echo
+            echo "SUCCESS: GeraKStoreWelcome is referenced by Vively"
+
+          else
+
+            echo
+            echo "ERROR: GeraKStoreWelcome is NOT referenced by Vively"
+            exit 1
+
+          fi
+
+      - name: Check dylib
+        run: |
+          set -e
+
+          echo "=== DYLIB ==="
+
+          file "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          xcrun otool -L \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+      - name: Package
+        run: |
+          set -e
+
+          cd work
+
+          rm -f ../GeraKMusic-injected.ipa
+
+          zip -qry ../GeraKMusic-injected.ipa Payload
+
+          cd ..
+
+          ls -lh GeraKMusic-injected.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeraKMusic-injected
+          path: GeraKMusic-injected.ipa
