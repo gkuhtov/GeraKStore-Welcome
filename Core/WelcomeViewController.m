@@ -8,6 +8,9 @@
 
 @property (nonatomic, strong) CAGradientLayer *backgroundGradientLayer;
 
+@property (nonatomic, strong) CALayer *starsLayer;
+@property (nonatomic, strong) CAShapeLayer *mountainsLayer;
+
 @property (nonatomic, strong) UIVisualEffectView *glassView;
 @property (nonatomic, strong) UIView *glassTintView;
 
