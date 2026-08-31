@@ -1414,23 +1414,15 @@
     self.heartbeatActive =
         YES;
 
-    /*
-     * Первый генератор.
-     */
-
-    if (@available(iOS 10.0, *)) {
+    if (@available(iOS 13.0, *)) {
 
         self.heartbeatFeedback =
             [[UIImpactFeedbackGenerator alloc]
                 initWithStyle:
-                    UIImpactFeedbackStyleMedium];
+                    UIImpactFeedbackStyleHeavy];
 
         [self.heartbeatFeedback prepare];
     }
-
-    /*
-     * Первый удар.
-     */
 
     [self performHeartbeatBeatOne];
 }
@@ -1444,9 +1436,17 @@
 
     /*
      * ТУК №1.
+     * Основной сильный удар.
      */
 
-    if (@available(iOS 10.0, *)) {
+    if (@available(iOS 13.0, *)) {
+
+        self.heartbeatFeedback =
+            [[UIImpactFeedbackGenerator alloc]
+                initWithStyle:
+                    UIImpactFeedbackStyleHeavy];
+
+        [self.heartbeatFeedback prepare];
 
         [self.heartbeatFeedback impactOccurred];
 
@@ -1454,7 +1454,7 @@
     }
 
     [UIView animateWithDuration:
-        0.12
+        0.115
         delay:0.0
         options:
             UIViewAnimationOptionAllowUserInteraction |
@@ -1464,8 +1464,8 @@
 
             self.logoView.transform =
                 CGAffineTransformMakeScale(
-                    1.10,
-                    1.10
+                    1.13,
+                    1.13
                 );
 
         }
@@ -1476,7 +1476,7 @@
             }
 
             [UIView animateWithDuration:
-                0.13
+                0.16
                 delay:0.0
                 options:
                     UIViewAnimationOptionAllowUserInteraction |
@@ -1495,15 +1495,15 @@
                     }
 
                     /*
-                     * Небольшая пауза.
-                     * Затем второй удар.
+                     * Короткий интервал
+                     * между двумя ударами.
                      */
 
                     dispatch_after(
                         dispatch_time(
                             DISPATCH_TIME_NOW,
                             (int64_t)(
-                                0.09 *
+                                0.075 *
                                 NSEC_PER_SEC
                             )
                         ),
@@ -1529,13 +1529,10 @@
 
     /*
      * ТУК №2.
+     * Второй удар немного слабее.
      */
 
-    if (@available(iOS 10.0, *)) {
-
-        /*
-         * Повторно готовим генератор.
-         */
+    if (@available(iOS 13.0, *)) {
 
         self.heartbeatFeedback =
             [[UIImpactFeedbackGenerator alloc]
@@ -1550,7 +1547,7 @@
     }
 
     [UIView animateWithDuration:
-        0.10
+        0.095
         delay:0.0
         options:
             UIViewAnimationOptionAllowUserInteraction |
@@ -1560,8 +1557,8 @@
 
             self.logoView.transform =
                 CGAffineTransformMakeScale(
-                    1.075,
-                    1.075
+                    1.085,
+                    1.085
                 );
 
         }
@@ -1572,7 +1569,7 @@
             }
 
             [UIView animateWithDuration:
-                0.12
+                0.145
                 delay:0.0
                 options:
                     UIViewAnimationOptionAllowUserInteraction |
@@ -1591,14 +1588,15 @@
                     }
 
                     /*
-                     * Пауза между сердцебиениями.
+                     * Пауза перед следующим
+                     * сердцебиением.
                      */
 
                     dispatch_after(
                         dispatch_time(
                             DISPATCH_TIME_NOW,
                             (int64_t)(
-                                0.85 *
+                                0.82 *
                                 NSEC_PER_SEC
                             )
                         ),
