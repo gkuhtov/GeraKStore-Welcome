@@ -1,4 +1,5 @@
 #import "EmbeddedResourceLoader.h"
+#import <CoreMotion/CoreMotion.h>
 #import "WelcomeViewController.h"
 #import "WelcomeConfig.h"
 #import "UserDefaults+Welcome.h"
@@ -11,6 +12,11 @@
 @property (nonatomic, strong) UIView *glassTintView;
 
 @property (nonatomic, strong) UIImageView *logoView;
+
+@property (nonatomic, strong) CMMotionManager *motionManager;
+@property (nonatomic, assign) BOOL motionActive;
+@property (nonatomic, assign) CGFloat smoothedRoll;
+@property (nonatomic, assign) CGFloat smoothedPitch;
 
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
@@ -41,11 +47,253 @@
     self.view.opaque = YES;
 
     [self setupBackground];
+    [self setupDecorations];
     [self setupGlass];
     [self setupInterface];
     [self setupActions];
     [self animateInterface];
+    [self startMotionEffects];
 }
+
+#pragma mark - Adaptive Layout
+
+- (void)viewDidLayoutSubviews {
+
+    [super viewDidLayoutSubviews];
+
+    self.backgroundGradientLayer.frame =
+        self.view.bounds;
+
+    const CGFloat parallaxPadding =
+        40.0;
+
+    if (self.starsLayer) {
+
+        self.starsLayer.frame =
+            CGRectInset(
+                self.view.bounds,
+                -parallaxPadding,
+                -parallaxPadding
+            );
+
+        [self layoutStars];
+    }
+
+    if (self.mountainsLayer) {
+
+        self.mountainsLayer.frame =
+            CGRectInset(
+                self.view.bounds,
+                -parallaxPadding,
+                0.0
+            );
+
+        [self layoutMountains];
+    }
+}
+
+- (void)layoutStars {
+
+    if (!self.starsLayer) {
+        return;
+    }
+
+    CGSize size =
+        self.starsLayer.bounds.size;
+
+    NSArray *positions = @[
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.05, 0.08)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.14, 0.19)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.24, 0.07)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.34, 0.15)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.46, 0.06)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.58, 0.18)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.70, 0.08)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.83, 0.21)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.95, 0.11)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.08, 0.33)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.21, 0.42)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.36, 0.31)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.51, 0.40)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.65, 0.32)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.79, 0.43)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.92, 0.36)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.12, 0.54)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.29, 0.62)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.47, 0.55)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.63, 0.64)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.78, 0.56)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.93, 0.67)]
+    ];
+
+    NSUInteger count =
+        MIN(
+            positions.count,
+            self.starsLayer.sublayers.count
+        );
+
+    for (NSUInteger i = 0; i < count; i++) {
+
+        CALayer *star =
+            (CALayer *)self.starsLayer.sublayers[i];
+
+        CGPoint normalized =
+            [positions[i] CGPointValue];
+
+        star.position =
+            CGPointMake(
+                normalized.x * size.width,
+                normalized.y * size.height
+            );
+    }
+}
+
+- (void)layoutMountains {
+
+    if (!self.mountainsLayer) {
+        return;
+    }
+
+    CGFloat width =
+        self.mountainsLayer.bounds.size.width;
+
+    CGFloat height =
+        self.mountainsLayer.bounds.size.height;
+
+    /*
+     * Горы занимают нижнюю часть экрана.
+     * Ширина слоя уже больше экрана,
+     * поэтому при параллаксе края не появляются.
+     */
+
+    CGFloat mountainWidth =
+        width;
+
+    UIBezierPath *path =
+        [UIBezierPath bezierPath];
+
+    [path moveToPoint:
+        CGPointMake(
+            0.0,
+            height * 0.88
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.07,
+            height * 0.77
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.17,
+            height * 0.86
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.29,
+            height * 0.70
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.40,
+            height * 0.83
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.53,
+            height * 0.65
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.64,
+            height * 0.81
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.76,
+            height * 0.70
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth * 0.88,
+            height * 0.84
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth,
+            height * 0.75
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            mountainWidth,
+            height
+        )];
+
+    [path addLineToPoint:
+        CGPointMake(
+            0.0,
+            height
+        )];
+
+    [path closePath];
+
+    self.mountainsLayer.path =
+        path.CGPath;
+}
+
 
 #pragma mark - Configuration
 
@@ -104,6 +352,330 @@
     [self.view.layer
         insertSublayer:self.backgroundGradientLayer
         atIndex:0];
+}
+
+#pragma mark - Decorations
+
+- (void)setupDecorations {
+
+    /*
+     * Слои немного больше экрана.
+     * Это оставляет запас для параллакса при наклоне телефона.
+     */
+
+    const CGFloat parallaxPadding =
+        40.0;
+
+    /*
+     * Звёзды.
+     */
+
+    self.starsLayer =
+        [CALayer layer];
+
+    self.starsLayer.frame =
+        CGRectInset(
+            self.view.bounds,
+            -parallaxPadding,
+            -parallaxPadding
+        );
+
+    self.starsLayer.zPosition =
+        1.0;
+
+    [self.view.layer
+        addSublayer:self.starsLayer];
+
+    NSArray *starPositions = @[
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.05, 0.08)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.14, 0.19)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.24, 0.07)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.34, 0.15)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.46, 0.06)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.58, 0.18)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.70, 0.08)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.83, 0.21)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.95, 0.11)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.08, 0.33)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.21, 0.42)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.36, 0.31)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.51, 0.40)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.65, 0.32)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.79, 0.43)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.92, 0.36)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.12, 0.54)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.29, 0.62)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.47, 0.55)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.63, 0.64)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.78, 0.56)],
+
+        [NSValue valueWithCGPoint:
+            CGPointMake(0.93, 0.67)]
+    ];
+
+    for (NSValue *value in starPositions) {
+
+        CGPoint normalized =
+            value.CGPointValue;
+
+        CALayer *star =
+            [CALayer layer];
+
+        CGFloat seed =
+            normalized.x * 17.0 +
+            normalized.y * 31.0;
+
+        CGFloat fraction =
+            seed - floor(seed);
+
+        CGFloat size =
+            1.4 + fraction * 2.2;
+
+        star.bounds =
+            CGRectMake(
+                0.0,
+                0.0,
+                size,
+                size
+            );
+
+        star.cornerRadius =
+            size / 2.0;
+
+        star.backgroundColor =
+            [UIColor.whiteColor
+                colorWithAlphaComponent:0.72].CGColor;
+
+        [self.starsLayer
+            addSublayer:star];
+    }
+
+    /*
+     * Горы.
+     */
+
+    self.mountainsLayer =
+        [CAShapeLayer layer];
+
+    self.mountainsLayer.frame =
+        CGRectInset(
+            self.view.bounds,
+            -parallaxPadding,
+            0.0
+        );
+
+    self.mountainsLayer.zPosition =
+        2.0;
+
+    self.mountainsLayer.fillColor =
+        [UIColor.blackColor
+            colorWithAlphaComponent:0.34].CGColor;
+
+    [self.view.layer
+        addSublayer:self.mountainsLayer];
+
+    [self layoutStars];
+    [self layoutMountains];
+}
+
+#pragma mark - Motion
+
+- (void)startMotionEffects {
+
+    if (self.motionActive) {
+        return;
+    }
+
+    CMMotionManager *manager =
+        [[CMMotionManager alloc] init];
+
+    if (!manager.deviceMotionAvailable) {
+        return;
+    }
+
+    manager.deviceMotionUpdateInterval =
+        1.0 / 60.0;
+
+    self.motionManager =
+        manager;
+
+    self.motionActive =
+        YES;
+
+    self.smoothedRoll =
+        0.0;
+
+    self.smoothedPitch =
+        0.0;
+
+    NSOperationQueue *queue =
+        [[NSOperationQueue alloc] init];
+
+    queue.qualityOfService =
+        NSQualityOfServiceUserInteractive;
+
+    [manager startDeviceMotionUpdatesToQueue:queue
+                                  withHandler:
+        ^(CMDeviceMotion *motion, NSError *error) {
+
+        if (error || !motion) {
+            return;
+        }
+
+        CGFloat roll =
+            (CGFloat)motion.attitude.roll;
+
+        CGFloat pitch =
+            (CGFloat)motion.attitude.pitch;
+
+        roll =
+            MAX(-0.65, MIN(0.65, roll));
+
+        pitch =
+            MAX(-0.65, MIN(0.65, pitch));
+
+        dispatch_async(
+            dispatch_get_main_queue(),
+            ^{
+
+                if (!self.motionActive) {
+                    return;
+                }
+
+                /*
+                 * Плавное сглаживание движения.
+                 */
+
+                const CGFloat smoothing =
+                    0.12;
+
+                self.smoothedRoll +=
+                    (roll - self.smoothedRoll)
+                    * smoothing;
+
+                self.smoothedPitch +=
+                    (pitch - self.smoothedPitch)
+                    * smoothing;
+
+                CGFloat normalizedRoll =
+                    self.smoothedRoll / 0.65;
+
+                CGFloat normalizedPitch =
+                    self.smoothedPitch / 0.65;
+
+                /*
+                 * Звёзды находятся дальше.
+                 * Они сильнее смещаются и слегка наклоняются
+                 * вместе с телефоном.
+                 */
+
+                CATransform3D starsTransform =
+                    CATransform3DMakeTranslation(
+                        normalizedRoll * -24.0,
+                        normalizedPitch * -18.0,
+                        0.0
+                    );
+
+                starsTransform =
+                    CATransform3DRotate(
+                        starsTransform,
+                        normalizedRoll * -0.045,
+                        0.0,
+                        0.0,
+                        1.0
+                    );
+
+                self.starsLayer.transform =
+                    starsTransform;
+
+                /*
+                 * Горы находятся ближе.
+                 * Они двигаются мягче и тоже слегка наклоняются.
+                 */
+
+                CATransform3D mountainsTransform =
+                    CATransform3DMakeTranslation(
+                        normalizedRoll * -14.0,
+                        normalizedPitch * -10.0,
+                        0.0
+                    );
+
+                mountainsTransform =
+                    CATransform3DRotate(
+                        mountainsTransform,
+                        normalizedRoll * -0.028,
+                        0.0,
+                        0.0,
+                        1.0
+                    );
+
+                self.mountainsLayer.transform =
+                    mountainsTransform;
+            }
+        );
+    }];
+}
+
+- (void)stopMotionEffects {
+
+    self.motionActive = NO;
+
+    if (self.motionManager) {
+        [self.motionManager stopDeviceMotionUpdates];
+        self.motionManager = nil;
+    }
+
+    [UIView animateWithDuration:0.25
+                     animations:^{
+
+        self.starsLayer.transform =
+            CATransform3DIdentity;
+
+        self.mountainsLayer.transform =
+            CATransform3DIdentity;
+    }];
 }
 
 #pragma mark - Glass
@@ -208,18 +780,14 @@
                 self.view.centerYAnchor],
 
         [self.glassView.leadingAnchor
-            constraintGreaterThanOrEqualToAnchor:
+            constraintEqualToAnchor:
                 self.view.leadingAnchor
-                constant:20.0],
+                constant:16.0],
 
         [self.glassView.trailingAnchor
-            constraintLessThanOrEqualToAnchor:
+            constraintEqualToAnchor:
                 self.view.trailingAnchor
-                constant:-20.0],
-
-        [self.glassView.widthAnchor
-            constraintLessThanOrEqualToConstant:
-                appearance.cardMaxWidth],
+                constant:-16.0],
 
         [self.contentStack.topAnchor
             constraintEqualToAnchor:
