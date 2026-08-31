@@ -17,9 +17,13 @@
 @property (nonatomic, strong) UIImageView *logoView;
 
 @property (nonatomic, strong) CMMotionManager *motionManager;
+@property (nonatomic, strong) CMAttitude *referenceAttitude;
 @property (nonatomic, assign) BOOL motionActive;
 @property (nonatomic, assign) CGFloat smoothedRoll;
 @property (nonatomic, assign) CGFloat smoothedPitch;
+
+@property (nonatomic, assign) CGFloat referenceRoll;
+@property (nonatomic, assign) CGFloat referencePitch;
 
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
@@ -547,6 +551,9 @@
     self.motionActive =
         YES;
 
+    self.referenceAttitude =
+        nil;
+
     self.smoothedRoll =
         0.0;
 
@@ -559,25 +566,60 @@
     queue.qualityOfService =
         NSQualityOfServiceUserInteractive;
 
-    [manager startDeviceMotionUpdatesToQueue:queue
-                                  withHandler:
+    CMAttitudeReferenceFrame referenceFrame =
+        CMAttitudeReferenceFrameXArbitraryCorrectedZVertical;
+
+    [manager
+        startDeviceMotionUpdatesUsingReferenceFrame:
+            referenceFrame
+        toQueue:queue
+        withHandler:
         ^(CMDeviceMotion *motion, NSError *error) {
 
         if (error || !motion) {
             return;
         }
 
+        /*
+         * Первое положение телефона становится
+         * нулевой точкой параллакса.
+         */
+
+        if (!self.referenceAttitude) {
+
+            self.referenceAttitude =
+                [motion.attitude copy];
+
+            return;
+        }
+
+        /*
+         * Получаем изменение положения относительно
+         * исходного положения телефона.
+         */
+
+        CMAttitude *relativeAttitude =
+            [motion.attitude copy];
+
+        [relativeAttitude
+            multiplyByInverseOfAttitude:
+                self.referenceAttitude];
+
         CGFloat roll =
-            (CGFloat)motion.attitude.roll;
+            (CGFloat)relativeAttitude.roll;
 
         CGFloat pitch =
-            (CGFloat)motion.attitude.pitch;
+            (CGFloat)relativeAttitude.pitch;
+
+        /*
+         * Ограничиваем максимальное смещение.
+         */
 
         roll =
-            MAX(-0.75, MIN(0.75, roll));
+            MAX(-0.55, MIN(0.55, roll));
 
         pitch =
-            MAX(-0.75, MIN(0.75, pitch));
+            MAX(-0.55, MIN(0.55, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -588,11 +630,11 @@
                 }
 
                 /*
-                 * Сильное, но плавное сглаживание.
+                 * Плавность движения.
                  */
 
                 const CGFloat smoothing =
-                    0.10;
+                    0.14;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -603,34 +645,33 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.75;
+                    self.smoothedRoll / 0.55;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.75;
+                    self.smoothedPitch / 0.55;
 
                 /*
-                 * Звёзды находятся далеко.
-                 * Двигаются заметно сильнее.
+                 * ЗВЁЗДЫ.
+                 *
+                 * Дальний слой.
+                 * Большое смещение.
                  */
 
                 CATransform3D starsTransform =
                     CATransform3DIdentity;
 
-                starsTransform.m34 =
-                    -1.0 / 700.0;
-
                 starsTransform =
                     CATransform3DTranslate(
                         starsTransform,
-                        normalizedRoll * -52.0,
-                        normalizedPitch * -40.0,
+                        normalizedRoll * -58.0,
+                        normalizedPitch * -44.0,
                         0.0
                     );
 
                 starsTransform =
                     CATransform3DRotate(
                         starsTransform,
-                        normalizedRoll * -0.075,
+                        normalizedRoll * -0.055,
                         0.0,
                         0.0,
                         1.0
@@ -640,28 +681,27 @@
                     starsTransform;
 
                 /*
-                 * Горы находятся ближе.
-                 * Двигаются немного меньше звёзд.
+                 * ГОРЫ.
+                 *
+                 * Ближний слой.
+                 * Смещение меньше.
                  */
 
                 CATransform3D mountainsTransform =
                     CATransform3DIdentity;
 
-                mountainsTransform.m34 =
-                    -1.0 / 900.0;
-
                 mountainsTransform =
                     CATransform3DTranslate(
                         mountainsTransform,
-                        normalizedRoll * -30.0,
-                        normalizedPitch * -23.0,
+                        normalizedRoll * -34.0,
+                        normalizedPitch * -25.0,
                         0.0
                     );
 
                 mountainsTransform =
                     CATransform3DRotate(
                         mountainsTransform,
-                        normalizedRoll * -0.045,
+                        normalizedRoll * -0.030,
                         0.0,
                         0.0,
                         1.0
@@ -674,7 +714,6 @@
     }];
 }
 
-
 - (void)stopMotionEffects {
 
     self.motionActive = NO;
@@ -683,6 +722,9 @@
         [self.motionManager stopDeviceMotionUpdates];
         self.motionManager = nil;
     }
+
+    self.referenceAttitude =
+        nil;
 
     [UIView animateWithDuration:0.25
                      animations:^{
@@ -1068,6 +1110,13 @@
         configuration.cornerStyle =
             UIButtonConfigurationCornerStyleCapsule;
 
+        configuration.background.strokeColor =
+            [UIColor.whiteColor
+                colorWithAlphaComponent:0.38];
+
+        configuration.background.strokeWidth =
+            1.0;
+
         configuration.contentInsets =
             NSDirectionalEdgeInsetsMake(
                 0.0,
@@ -1142,6 +1191,13 @@
 
         configuration.cornerStyle =
             UIButtonConfigurationCornerStyleCapsule;
+
+        configuration.background.strokeColor =
+            [UIColor.whiteColor
+                colorWithAlphaComponent:0.38];
+
+        configuration.background.strokeWidth =
+            1.0;
 
         configuration.contentInsets =
             NSDirectionalEdgeInsetsMake(
@@ -1294,7 +1350,7 @@
     }
 
     /*
-     * Плавное появление стеклянной карточки.
+     * Появление стеклянной карточки.
      */
 
     self.glassView.alpha =
@@ -1323,19 +1379,18 @@
         }
         completion:^(BOOL finished) {
 
-            if (!finished) {
+            if (!finished || !self.logoView) {
                 return;
             }
 
             /*
-             * Мягкое постоянное "серцебиение".
-             * Масштаб меняется совсем немного,
-             * чтобы стекло ощущалось живым,
-             * но интерфейс не выглядел дёрганым.
+             * Сердцебиение только логотипа.
+             *
+             * Карточка больше не масштабируется.
              */
 
             [UIView animateWithDuration:
-                2.4
+                1.35
                 delay:0.15
                 options:
                     UIViewAnimationOptionAllowUserInteraction |
@@ -1345,17 +1400,16 @@
                     UIViewAnimationOptionCurveEaseInOut
                 animations:^{
 
-                    self.glassView.transform =
+                    self.logoView.transform =
                         CGAffineTransformMakeScale(
-                            1.012,
-                            1.012
+                            1.045,
+                            1.045
                         );
 
                 }
                 completion:nil];
         }];
 }
-
 
 #pragma mark - Color
 
