@@ -574,10 +574,10 @@
             (CGFloat)motion.attitude.pitch;
 
         roll =
-            MAX(-0.65, MIN(0.65, roll));
+            MAX(-0.75, MIN(0.75, roll));
 
         pitch =
-            MAX(-0.65, MIN(0.65, pitch));
+            MAX(-0.75, MIN(0.75, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -588,11 +588,11 @@
                 }
 
                 /*
-                 * Плавное сглаживание движения.
+                 * Сильное, но плавное сглаживание.
                  */
 
                 const CGFloat smoothing =
-                    0.12;
+                    0.10;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -603,28 +603,34 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.65;
+                    self.smoothedRoll / 0.75;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.65;
+                    self.smoothedPitch / 0.75;
 
                 /*
-                 * Звёзды находятся дальше.
-                 * Они сильнее смещаются и слегка наклоняются
-                 * вместе с телефоном.
+                 * Звёзды находятся далеко.
+                 * Двигаются заметно сильнее.
                  */
 
                 CATransform3D starsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -24.0,
-                        normalizedPitch * -18.0,
+                    CATransform3DIdentity;
+
+                starsTransform.m34 =
+                    -1.0 / 700.0;
+
+                starsTransform =
+                    CATransform3DTranslate(
+                        starsTransform,
+                        normalizedRoll * -52.0,
+                        normalizedPitch * -40.0,
                         0.0
                     );
 
                 starsTransform =
                     CATransform3DRotate(
                         starsTransform,
-                        normalizedRoll * -0.045,
+                        normalizedRoll * -0.075,
                         0.0,
                         0.0,
                         1.0
@@ -635,20 +641,27 @@
 
                 /*
                  * Горы находятся ближе.
-                 * Они двигаются мягче и тоже слегка наклоняются.
+                 * Двигаются немного меньше звёзд.
                  */
 
                 CATransform3D mountainsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -14.0,
-                        normalizedPitch * -10.0,
+                    CATransform3DIdentity;
+
+                mountainsTransform.m34 =
+                    -1.0 / 900.0;
+
+                mountainsTransform =
+                    CATransform3DTranslate(
+                        mountainsTransform,
+                        normalizedRoll * -30.0,
+                        normalizedPitch * -23.0,
                         0.0
                     );
 
                 mountainsTransform =
                     CATransform3DRotate(
                         mountainsTransform,
-                        normalizedRoll * -0.028,
+                        normalizedRoll * -0.045,
                         0.0,
                         0.0,
                         1.0
@@ -660,6 +673,7 @@
         );
     }];
 }
+
 
 - (void)stopMotionEffects {
 
@@ -1067,6 +1081,16 @@
                 configuration
                               primaryAction:nil];
 
+        button.layer.borderWidth =
+            1.0;
+
+        button.layer.borderColor =
+            [UIColor.whiteColor
+                colorWithAlphaComponent:0.32].CGColor;
+
+        button.layer.masksToBounds =
+            YES;
+
     } else {
 
         button =
@@ -1131,6 +1155,16 @@
             [UIButton buttonWithConfiguration:
                 configuration
                               primaryAction:nil];
+
+        button.layer.borderWidth =
+            1.0;
+
+        button.layer.borderColor =
+            [UIColor.whiteColor
+                colorWithAlphaComponent:0.32].CGColor;
+
+        button.layer.masksToBounds =
+            YES;
 
     } else {
 
@@ -1259,6 +1293,10 @@
         return;
     }
 
+    /*
+     * Плавное появление стеклянной карточки.
+     */
+
     self.glassView.alpha =
         0.0;
 
@@ -1283,8 +1321,41 @@
                 CGAffineTransformIdentity;
 
         }
-        completion:nil];
+        completion:^(BOOL finished) {
+
+            if (!finished) {
+                return;
+            }
+
+            /*
+             * Мягкое постоянное "серцебиение".
+             * Масштаб меняется совсем немного,
+             * чтобы стекло ощущалось живым,
+             * но интерфейс не выглядел дёрганым.
+             */
+
+            [UIView animateWithDuration:
+                2.4
+                delay:0.15
+                options:
+                    UIViewAnimationOptionAllowUserInteraction |
+                    UIViewAnimationOptionBeginFromCurrentState |
+                    UIViewAnimationOptionAutoreverse |
+                    UIViewAnimationOptionRepeat |
+                    UIViewAnimationOptionCurveEaseInOut
+                animations:^{
+
+                    self.glassView.transform =
+                        CGAffineTransformMakeScale(
+                            1.012,
+                            1.012
+                        );
+
+                }
+                completion:nil];
+        }];
 }
+
 
 #pragma mark - Color
 
