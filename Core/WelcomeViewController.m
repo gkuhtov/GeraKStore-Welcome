@@ -7,6 +7,7 @@
 @interface WelcomeViewController ()
 
 @property (nonatomic, strong) CAGradientLayer *backgroundGradientLayer;
+@property (nonatomic, strong) CALayer *backgroundGlowLayer;
 
 @property (nonatomic, strong) CALayer *starsLayer;
 @property (nonatomic, strong) CAShapeLayer *mountainsLayer;
@@ -62,6 +63,7 @@
     [self setupInterface];
     [self setupActions];
     [self animateInterface];
+    [self startAmbientAnimation];
     [self startMotionEffects];
 }
 
@@ -83,6 +85,27 @@
 - (void)viewDidLayoutSubviews {
 
     [super viewDidLayoutSubviews];
+
+    if (self.backgroundGlowLayer) {
+
+        CGFloat size =
+            MAX(self.view.bounds.size.width,
+                self.view.bounds.size.height) * 0.72;
+
+        self.backgroundGlowLayer.bounds =
+            CGRectMake(
+                0.0,
+                0.0,
+                size,
+                size
+            );
+
+        self.backgroundGlowLayer.position =
+            CGPointMake(
+                self.view.bounds.size.width * 0.72,
+                self.view.bounds.size.height * 0.28
+            );
+    }
 
     self.backgroundGradientLayer.frame =
         self.view.bounds;
@@ -360,6 +383,37 @@
     self.backgroundGradientLayer =
         [CAGradientLayer layer];
 
+    /*
+     * Мягкое свечение за стеклом.
+     * Оно будет двигаться вместе с параллаксом.
+     */
+
+    self.backgroundGlowLayer =
+        [CALayer layer];
+
+    self.backgroundGlowLayer.backgroundColor =
+        [UIColor.whiteColor
+            colorWithAlphaComponent:0.045].CGColor;
+
+    self.backgroundGlowLayer.cornerRadius =
+        180.0;
+
+    self.backgroundGlowLayer.shadowColor =
+        UIColor.whiteColor.CGColor;
+
+    self.backgroundGlowLayer.shadowOpacity =
+        0.20;
+
+    self.backgroundGlowLayer.shadowRadius =
+        90.0;
+
+    self.backgroundGlowLayer.shadowOffset =
+        CGSizeZero;
+
+    [self.view.layer
+        insertSublayer:self.backgroundGlowLayer
+        above:self.backgroundGradientLayer];
+
     self.backgroundGradientLayer.colors =
         cgColors;
 
@@ -543,6 +597,80 @@
     [self layoutMountains];
 }
 
+#pragma mark - Ambient Background
+
+- (void)startAmbientAnimation {
+
+    if (self.ambientAnimationActive ||
+        !self.starsLayer) {
+        return;
+    }
+
+    self.ambientAnimationActive = YES;
+
+    /*
+     * Очень медленное дыхание звёзд.
+     * Работает на уровне Core Animation,
+     * поэтому не нагружает главный поток.
+     */
+
+    CABasicAnimation *stars =
+        [CABasicAnimation animationWithKeyPath:@"opacity"];
+
+    stars.fromValue = @0.86;
+    stars.toValue = @1.0;
+    stars.duration = 3.2;
+    stars.autoreverses = YES;
+    stars.repeatCount = HUGE_VALF;
+
+    stars.timingFunction =
+        [CAMediaTimingFunction
+            functionWithName:
+                kCAMediaTimingFunctionEaseInEaseOut];
+
+    [self.starsLayer
+        addAnimation:stars
+        forKey:@"gerastore.ambient.stars"];
+
+    /*
+     * Едва заметное дыхание гор.
+     */
+
+    if (self.mountainsLayer) {
+
+        CABasicAnimation *mountains =
+            [CABasicAnimation animationWithKeyPath:@"opacity"];
+
+        mountains.fromValue = @0.94;
+        mountains.toValue = @1.0;
+        mountains.duration = 4.8;
+        mountains.autoreverses = YES;
+        mountains.repeatCount = HUGE_VALF;
+
+        mountains.timingFunction =
+            [CAMediaTimingFunction
+                functionWithName:
+                    kCAMediaTimingFunctionEaseInEaseOut];
+
+        [self.mountainsLayer
+            addAnimation:mountains
+            forKey:@"gerastore.ambient.mountains"];
+    }
+}
+
+- (void)stopAmbientAnimation {
+
+    self.ambientAnimationActive = NO;
+
+    [self.starsLayer
+        removeAnimationForKey:
+            @"gerastore.ambient.stars"];
+
+    [self.mountainsLayer
+        removeAnimationForKey:
+            @"gerastore.ambient.mountains"];
+}
+
 #pragma mark - Motion
 
 - (void)startMotionEffects {
@@ -573,14 +701,8 @@
     self.smoothedPitch =
         0.0;
 
-    __block CFTimeInterval lastUpdate =
-        0.0;
-
     NSOperationQueue *queue =
         [[NSOperationQueue alloc] init];
-
-    queue.maxConcurrentOperationCount =
-        1;
 
     queue.qualityOfService =
         NSQualityOfServiceUserInteractive;
@@ -593,22 +715,6 @@
             return;
         }
 
-        CFTimeInterval now =
-            CACurrentMediaTime();
-
-        /*
-         * Не отправляем в main queue слишком
-         * частые обновления.
-         *
-         * Старые кадры не должны накапливаться.
-         */
-
-        if (now - lastUpdate < (1.0 / 30.0)) {
-            return;
-        }
-
-        lastUpdate = now;
-
         CGFloat roll =
             (CGFloat)motion.attitude.roll;
 
@@ -616,10 +722,10 @@
             (CGFloat)motion.attitude.pitch;
 
         roll =
-            MAX(-0.75, MIN(0.75, roll));
+            MAX(-0.70, MIN(0.70, roll));
 
         pitch =
-            MAX(-0.75, MIN(0.75, pitch));
+            MAX(-0.70, MIN(0.70, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -631,13 +737,12 @@
 
                 /*
                  * Быстрое сглаживание.
-                 *
-                 * Старое значение быстро догоняет
-                 * реальное положение телефона.
+                 * Параллакс реагирует сразу,
+                 * но не дёргается.
                  */
 
                 const CGFloat smoothing =
-                    0.22;
+                    0.20;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -648,49 +753,129 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.75;
+                    self.smoothedRoll / 0.70;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.75;
+                    self.smoothedPitch / 0.70;
 
                 /*
-                 * Звёзды.
-                 *
-                 * Большой слой движения создаёт
-                 * выраженный параллакс.
+                 * Дальний слой.
+                 * Движение максимально заметное.
                  */
 
                 CATransform3D starsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -38.0,
-                        normalizedPitch * -30.0,
+                    CATransform3DIdentity;
+
+                starsTransform.m34 =
+                    -1.0 / 700.0;
+
+                starsTransform =
+                    CATransform3DTranslate(
+                        starsTransform,
+                        normalizedRoll * -70.0,
+                        normalizedPitch * -52.0,
                         0.0
+                    );
+
+                starsTransform =
+                    CATransform3DRotate(
+                        starsTransform,
+                        normalizedRoll * -0.055,
+                        0.0,
+                        0.0,
+                        1.0
                     );
 
                 self.starsLayer.transform =
                     starsTransform;
 
                 /*
-                 * Горы.
-                 *
-                 * Двигаются меньше звёзд,
-                 * поэтому появляется ощущение глубины.
+                 * Мягкое движение фонового свечения.
+                 * Амплитуда меньше звёзд.
+                 */
+
+                CATransform3D glowTransform =
+                    CATransform3DIdentity;
+
+                glowTransform =
+                    CATransform3DTranslate(
+                        glowTransform,
+                        normalizedRoll * -22.0,
+                        normalizedPitch * -16.0,
+                        0.0
+                    );
+
+                self.backgroundGlowLayer.transform =
+                    glowTransform;
+
+                /*
+                 * Передний слой.
+                 * Двигается слабее звёзд.
                  */
 
                 CATransform3D mountainsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -22.0,
-                        normalizedPitch * -17.0,
+                    CATransform3DIdentity;
+
+                mountainsTransform.m34 =
+                    -1.0 / 900.0;
+
+                mountainsTransform =
+                    CATransform3DTranslate(
+                        mountainsTransform,
+                        normalizedRoll * -38.0,
+                        normalizedPitch * -29.0,
                         0.0
+                    );
+
+                mountainsTransform =
+                    CATransform3DRotate(
+                        mountainsTransform,
+                        normalizedRoll * -0.035,
+                        0.0,
+                        0.0,
+                        1.0
                     );
 
                 self.mountainsLayer.transform =
                     mountainsTransform;
+
+                /*
+                 * ЛОГОТИП.
+                 *
+                 * Очень лёгкий отдельный параллакс.
+                 * Он меньше фоновых слоёв, поэтому
+                 * логотип остаётся главным объектом.
+                 */
+
+                CATransform3D logoTransform =
+                    CATransform3DIdentity;
+
+                logoTransform.m34 =
+                    -1.0 / 1000.0;
+
+                logoTransform =
+                    CATransform3DTranslate(
+                        logoTransform,
+                        normalizedRoll * -16.0,
+                        normalizedPitch * -12.0,
+                        0.0
+                    );
+
+                logoTransform =
+                    CATransform3DRotate(
+                        logoTransform,
+                        normalizedRoll * -0.018,
+                        0.0,
+                        0.0,
+                        1.0
+                    );
+
+                self.logoView.layer.transform =
+                    logoTransform;
             }
         );
     }];
 }
-
 
 - (void)stopMotionEffects {
 
@@ -713,6 +898,9 @@
             CATransform3DIdentity;
 
         self.mountainsLayer.transform =
+            CATransform3DIdentity;
+
+        self.backgroundGlowLayer.transform =
             CATransform3DIdentity;
     }];
 }
@@ -1155,10 +1343,10 @@
         UIColor.whiteColor.CGColor;
 
     button.layer.shadowOpacity =
-        0.16;
+        0.24;
 
     button.layer.shadowRadius =
-        8.0;
+        12.0;
 
     button.layer.shadowOffset =
         CGSizeZero;
@@ -1249,7 +1437,7 @@
         UIColor.whiteColor.CGColor;
 
     button.layer.shadowOpacity =
-        0.20;
+        0.28;
 
     button.layer.shadowRadius =
         10.0;
@@ -1260,9 +1448,91 @@
     return button;
 }
 
+
+#pragma mark - Button Touch Animation
+
+- (void)addButtonPressAnimation:(UIButton *)button {
+
+    [button addTarget:self
+               action:@selector(buttonTouchDown:)
+     forControlEvents:UIControlEventTouchDown];
+
+    [button addTarget:self
+               action:@selector(buttonTouchUp:)
+     forControlEvents:
+        UIControlEventTouchUpInside |
+        UIControlEventTouchUpOutside |
+        UIControlEventTouchCancel];
+}
+
+- (void)buttonTouchDown:(UIButton *)button {
+
+    [UIView animateWithDuration:
+        0.10
+        delay:0.0
+        options:
+            UIViewAnimationOptionBeginFromCurrentState |
+            UIViewAnimationOptionCurveEaseOut
+        animations:^{
+
+            button.transform =
+                CGAffineTransformMakeScale(
+                    0.965,
+                    0.965
+                );
+
+            button.alpha =
+                0.82;
+
+        }
+        completion:nil];
+}
+
+- (void)buttonTouchUp:(UIButton *)button {
+
+    [UIView animateWithDuration:
+        0.22
+        delay:0.0
+        usingSpringWithDamping:0.62
+        initialSpringVelocity:0.25
+        options:
+            UIViewAnimationOptionBeginFromCurrentState |
+            UIViewAnimationOptionCurveEaseOut
+        animations:^{
+
+            button.transform =
+                CGAffineTransformIdentity;
+
+            button.alpha =
+                1.0;
+
+        }
+        completion:nil];
+}
+
 #pragma mark - Actions
 
 - (void)setupActions {
+
+    NSArray *buttons = @[
+        self.telegramButton,
+        self.githubButton,
+        self.continueButton,
+        self.dontShowAgainButton
+    ];
+
+    for (UIButton *button in buttons) {
+        [button addTarget:self
+                   action:@selector(buttonTouchDown:)
+         forControlEvents:UIControlEventTouchDown];
+
+        [button addTarget:self
+                   action:@selector(buttonTouchUp:)
+         forControlEvents:
+             UIControlEventTouchUpInside |
+             UIControlEventTouchUpOutside |
+             UIControlEventTouchCancel];
+    }
 
     [self.telegramButton
         addTarget:self
@@ -1283,6 +1553,11 @@
         addTarget:self
         action:@selector(dontShowAgainPressed)
         forControlEvents:UIControlEventTouchUpInside];
+
+    [self addButtonPressAnimation:self.telegramButton];
+    [self addButtonPressAnimation:self.githubButton];
+    [self addButtonPressAnimation:self.continueButton];
+    [self addButtonPressAnimation:self.dontShowAgainButton];
 }
 
 - (void)openTelegram {
@@ -1304,6 +1579,7 @@
 - (void)continuePressed {
 
     [self stopHeartbeat];
+    [self stopAmbientAnimation];
     [self stopMotionEffects];
 
     [self dismissViewControllerAnimated:YES
@@ -1313,6 +1589,7 @@
 - (void)dontShowAgainPressed {
 
     [self stopHeartbeat];
+    [self stopAmbientAnimation];
     [self stopMotionEffects];
 
     [UserDefaultsWelcome
@@ -1339,6 +1616,62 @@
         self.logoView.transform =
             CGAffineTransformIdentity;
     }];
+}
+
+#pragma mark - Button Interaction
+
+- (void)buttonTouchDown:(UIButton *)button {
+
+    if (!button) {
+        return;
+    }
+
+    [UIView animateWithDuration:
+        0.10
+        delay:0.0
+        options:
+            UIViewAnimationOptionAllowUserInteraction |
+            UIViewAnimationOptionBeginFromCurrentState |
+            UIViewAnimationOptionCurveEaseOut
+        animations:^{
+
+            button.transform =
+                CGAffineTransformMakeScale(
+                    0.965,
+                    0.965
+                );
+
+            button.alpha =
+                0.82;
+
+        }
+        completion:nil];
+}
+
+- (void)buttonTouchUp:(UIButton *)button {
+
+    if (!button) {
+        return;
+    }
+
+    [UIView animateWithDuration:
+        0.18
+        delay:0.0
+        usingSpringWithDamping:0.65
+        initialSpringVelocity:0.4
+        options:
+            UIViewAnimationOptionAllowUserInteraction |
+            UIViewAnimationOptionBeginFromCurrentState
+        animations:^{
+
+            button.transform =
+                CGAffineTransformIdentity;
+
+            button.alpha =
+                1.0;
+
+        }
+        completion:nil];
 }
 
 #pragma mark - URL
