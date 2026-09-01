@@ -1739,6 +1739,23 @@
 
         [self.heartbeatFeedback impactOccurred];
 
+        dispatch_after(
+            dispatch_time(
+                DISPATCH_TIME_NOW,
+                (int64_t)(0.055 * NSEC_PER_SEC)
+            ),
+            dispatch_get_main_queue(),
+            ^{
+
+                if (self.heartbeatActive &&
+                    self.heartbeatFeedback) {
+
+                    [self.heartbeatFeedback impactOccurred];
+                    [self.heartbeatFeedback prepare];
+                }
+            }
+        );
+
         [self.heartbeatFeedback prepare];
     }
 
@@ -1831,6 +1848,23 @@
         [self.heartbeatFeedback prepare];
 
         [self.heartbeatFeedback impactOccurred];
+
+        dispatch_after(
+            dispatch_time(
+                DISPATCH_TIME_NOW,
+                (int64_t)(0.055 * NSEC_PER_SEC)
+            ),
+            dispatch_get_main_queue(),
+            ^{
+
+                if (self.heartbeatActive &&
+                    self.heartbeatFeedback) {
+
+                    [self.heartbeatFeedback impactOccurred];
+                    [self.heartbeatFeedback prepare];
+                }
+            }
+        );
 
         [self.heartbeatFeedback prepare];
     }
