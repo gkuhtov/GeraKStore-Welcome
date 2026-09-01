@@ -567,75 +567,59 @@
     self.motionActive =
         YES;
 
-    self.referenceAttitude =
-        nil;
-
     self.smoothedRoll =
         0.0;
 
     self.smoothedPitch =
         0.0;
 
+    __block CFTimeInterval lastUpdate =
+        0.0;
+
     NSOperationQueue *queue =
         [[NSOperationQueue alloc] init];
+
+    queue.maxConcurrentOperationCount =
+        1;
 
     queue.qualityOfService =
         NSQualityOfServiceUserInteractive;
 
-    CMAttitudeReferenceFrame referenceFrame =
-        CMAttitudeReferenceFrameXArbitraryCorrectedZVertical;
-
-    [manager
-        startDeviceMotionUpdatesUsingReferenceFrame:
-            referenceFrame
-        toQueue:queue
-        withHandler:
+    [manager startDeviceMotionUpdatesToQueue:queue
+                                  withHandler:
         ^(CMDeviceMotion *motion, NSError *error) {
 
         if (error || !motion) {
             return;
         }
 
+        CFTimeInterval now =
+            CACurrentMediaTime();
+
         /*
-         * Первое положение телефона становится
-         * нулевой точкой параллакса.
+         * Не отправляем в main queue слишком
+         * частые обновления.
+         *
+         * Старые кадры не должны накапливаться.
          */
 
-        if (!self.referenceAttitude) {
-
-            self.referenceAttitude =
-                [motion.attitude copy];
-
+        if (now - lastUpdate < (1.0 / 30.0)) {
             return;
         }
 
-        /*
-         * Получаем изменение положения относительно
-         * исходного положения телефона.
-         */
-
-        CMAttitude *relativeAttitude =
-            [motion.attitude copy];
-
-        [relativeAttitude
-            multiplyByInverseOfAttitude:
-                self.referenceAttitude];
+        lastUpdate = now;
 
         CGFloat roll =
-            (CGFloat)relativeAttitude.roll;
+            (CGFloat)motion.attitude.roll;
 
         CGFloat pitch =
-            (CGFloat)relativeAttitude.pitch;
-
-        /*
-         * Ограничиваем максимальное смещение.
-         */
+            (CGFloat)motion.attitude.pitch;
 
         roll =
-            MAX(-0.55, MIN(0.55, roll));
+            MAX(-0.75, MIN(0.75, roll));
 
         pitch =
-            MAX(-0.55, MIN(0.55, pitch));
+            MAX(-0.75, MIN(0.75, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -646,11 +630,14 @@
                 }
 
                 /*
-                 * Плавность движения.
+                 * Быстрое сглаживание.
+                 *
+                 * Старое значение быстро догоняет
+                 * реальное положение телефона.
                  */
 
                 const CGFloat smoothing =
-                    0.14;
+                    0.22;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -661,66 +648,40 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.55;
+                    self.smoothedRoll / 0.75;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.55;
+                    self.smoothedPitch / 0.75;
 
                 /*
-                 * ЗВЁЗДЫ.
+                 * Звёзды.
                  *
-                 * Дальний слой.
-                 * Большое смещение.
+                 * Большой слой движения создаёт
+                 * выраженный параллакс.
                  */
 
                 CATransform3D starsTransform =
-                    CATransform3DIdentity;
-
-                starsTransform =
-                    CATransform3DTranslate(
-                        starsTransform,
-                        normalizedRoll * -58.0,
-                        normalizedPitch * -44.0,
+                    CATransform3DMakeTranslation(
+                        normalizedRoll * -38.0,
+                        normalizedPitch * -30.0,
                         0.0
-                    );
-
-                starsTransform =
-                    CATransform3DRotate(
-                        starsTransform,
-                        normalizedRoll * -0.055,
-                        0.0,
-                        0.0,
-                        1.0
                     );
 
                 self.starsLayer.transform =
                     starsTransform;
 
                 /*
-                 * ГОРЫ.
+                 * Горы.
                  *
-                 * Ближний слой.
-                 * Смещение меньше.
+                 * Двигаются меньше звёзд,
+                 * поэтому появляется ощущение глубины.
                  */
 
                 CATransform3D mountainsTransform =
-                    CATransform3DIdentity;
-
-                mountainsTransform =
-                    CATransform3DTranslate(
-                        mountainsTransform,
-                        normalizedRoll * -34.0,
-                        normalizedPitch * -25.0,
+                    CATransform3DMakeTranslation(
+                        normalizedRoll * -22.0,
+                        normalizedPitch * -17.0,
                         0.0
-                    );
-
-                mountainsTransform =
-                    CATransform3DRotate(
-                        mountainsTransform,
-                        normalizedRoll * -0.030,
-                        0.0,
-                        0.0,
-                        1.0
                     );
 
                 self.mountainsLayer.transform =
@@ -729,6 +690,7 @@
         );
     }];
 }
+
 
 - (void)stopMotionEffects {
 
@@ -1189,6 +1151,18 @@
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
 
+    button.layer.shadowColor =
+        UIColor.whiteColor.CGColor;
+
+    button.layer.shadowOpacity =
+        0.16;
+
+    button.layer.shadowRadius =
+        8.0;
+
+    button.layer.shadowOffset =
+        CGSizeZero;
+
     return button;
 }
 
@@ -1271,6 +1245,18 @@
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
 
+    button.layer.shadowColor =
+        UIColor.whiteColor.CGColor;
+
+    button.layer.shadowOpacity =
+        0.20;
+
+    button.layer.shadowRadius =
+        10.0;
+
+    button.layer.shadowOffset =
+        CGSizeZero;
+
     return button;
 }
 
@@ -1317,17 +1303,42 @@
 
 - (void)continuePressed {
 
+    [self stopHeartbeat];
+    [self stopMotionEffects];
+
     [self dismissViewControllerAnimated:YES
                              completion:nil];
 }
 
 - (void)dontShowAgainPressed {
 
+    [self stopHeartbeat];
+    [self stopMotionEffects];
+
     [UserDefaultsWelcome
         markWelcomeAsSeen];
 
     [self dismissViewControllerAnimated:YES
                              completion:nil];
+}
+
+#pragma mark - Heartbeat Stop
+
+- (void)stopHeartbeat {
+
+    self.heartbeatActive = NO;
+
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+
+    if (@available(iOS 10.0, *)) {
+        self.heartbeatFeedback = nil;
+    }
+
+    [UIView animateWithDuration:0.12
+                     animations:^{
+        self.logoView.transform =
+            CGAffineTransformIdentity;
+    }];
 }
 
 #pragma mark - URL
@@ -1464,8 +1475,8 @@
 
             self.logoView.transform =
                 CGAffineTransformMakeScale(
-                    1.13,
-                    1.13
+                    1.15,
+                    1.15
                 );
 
         }
@@ -1537,7 +1548,7 @@
         self.heartbeatFeedback =
             [[UIImpactFeedbackGenerator alloc]
                 initWithStyle:
-                    UIImpactFeedbackStyleMedium];
+                    UIImpactFeedbackStyleHeavy];
 
         [self.heartbeatFeedback prepare];
 
@@ -1557,8 +1568,8 @@
 
             self.logoView.transform =
                 CGAffineTransformMakeScale(
-                    1.085,
-                    1.085
+                    1.095,
+                    1.095
                 );
 
         }
