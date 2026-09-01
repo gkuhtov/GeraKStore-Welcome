@@ -8,22 +8,15 @@
 
 @property (nonatomic, strong) CAGradientLayer *backgroundGradientLayer;
 
-@property (nonatomic, strong) CALayer *starsLayer;
-@property (nonatomic, strong) CAShapeLayer *mountainsLayer;
-
 @property (nonatomic, strong) UIVisualEffectView *glassView;
 @property (nonatomic, strong) UIView *glassTintView;
 
 @property (nonatomic, strong) UIImageView *logoView;
 
 @property (nonatomic, strong) CMMotionManager *motionManager;
-@property (nonatomic, strong) CMAttitude *referenceAttitude;
 @property (nonatomic, assign) BOOL motionActive;
 @property (nonatomic, assign) CGFloat smoothedRoll;
 @property (nonatomic, assign) CGFloat smoothedPitch;
-
-@property (nonatomic, assign) CGFloat referenceRoll;
-@property (nonatomic, assign) CGFloat referencePitch;
 
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
@@ -35,9 +28,6 @@
 
 @property (nonatomic, strong) UIStackView *contentStack;
 @property (nonatomic, strong) UIStackView *socialStack;
-
-@property (nonatomic, strong) UIImpactFeedbackGenerator *heartbeatFeedback;
-@property (nonatomic, assign) BOOL heartbeatActive;
 
 @end
 
@@ -65,19 +55,6 @@
     [self startMotionEffects];
 }
 
-- (void)viewDidAppear:(BOOL)animated {
-
-    [super viewDidAppear:animated];
-
-    /*
-     * Heartbeat запускаем после фактического
-     * появления экрана.
-     */
-
-    [self startHeartbeat];
-
-}
-
 #pragma mark - Adaptive Layout
 
 - (void)viewDidLayoutSubviews {
@@ -87,17 +64,10 @@
     self.backgroundGradientLayer.frame =
         self.view.bounds;
 
-    const CGFloat parallaxPadding =
-        40.0;
-
     if (self.starsLayer) {
 
         self.starsLayer.frame =
-            CGRectInset(
-                self.view.bounds,
-                -parallaxPadding,
-                -parallaxPadding
-            );
+            self.view.bounds;
 
         [self layoutStars];
     }
@@ -105,11 +75,7 @@
     if (self.mountainsLayer) {
 
         self.mountainsLayer.frame =
-            CGRectInset(
-                self.view.bounds,
-                -parallaxPadding,
-                0.0
-            );
+            self.view.bounds;
 
         [self layoutMountains];
     }
@@ -122,75 +88,26 @@
     }
 
     CGSize size =
-        self.starsLayer.bounds.size;
+        self.view.bounds.size;
 
     NSArray *positions = @[
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.05, 0.08)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.14, 0.19)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.24, 0.07)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.34, 0.15)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.46, 0.06)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.58, 0.18)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.70, 0.08)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.83, 0.21)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.95, 0.11)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.08, 0.33)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.21, 0.42)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.36, 0.31)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.51, 0.40)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.65, 0.32)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.79, 0.43)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.92, 0.36)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.12, 0.54)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.29, 0.62)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.47, 0.55)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.63, 0.64)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.78, 0.56)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.93, 0.67)]
+        [NSValue valueWithCGPoint:CGPointMake(0.07, 0.10)],
+        [NSValue valueWithCGPoint:CGPointMake(0.17, 0.23)],
+        [NSValue valueWithCGPoint:CGPointMake(0.29, 0.08)],
+        [NSValue valueWithCGPoint:CGPointMake(0.41, 0.18)],
+        [NSValue valueWithCGPoint:CGPointMake(0.54, 0.07)],
+        [NSValue valueWithCGPoint:CGPointMake(0.67, 0.20)],
+        [NSValue valueWithCGPoint:CGPointMake(0.80, 0.09)],
+        [NSValue valueWithCGPoint:CGPointMake(0.93, 0.25)],
+        [NSValue valueWithCGPoint:CGPointMake(0.10, 0.39)],
+        [NSValue valueWithCGPoint:CGPointMake(0.31, 0.34)],
+        [NSValue valueWithCGPoint:CGPointMake(0.52, 0.43)],
+        [NSValue valueWithCGPoint:CGPointMake(0.73, 0.36)],
+        [NSValue valueWithCGPoint:CGPointMake(0.90, 0.48)],
+        [NSValue valueWithCGPoint:CGPointMake(0.06, 0.57)],
+        [NSValue valueWithCGPoint:CGPointMake(0.24, 0.51)],
+        [NSValue valueWithCGPoint:CGPointMake(0.68, 0.55)],
+        [NSValue valueWithCGPoint:CGPointMake(0.94, 0.61)]
     ];
 
     NSUInteger count =
@@ -222,101 +139,58 @@
     }
 
     CGFloat width =
-        self.mountainsLayer.bounds.size.width;
+        self.view.bounds.size.width;
 
     CGFloat height =
-        self.mountainsLayer.bounds.size.height;
-
-    /*
-     * Горы занимают нижнюю часть экрана.
-     * Ширина слоя уже больше экрана,
-     * поэтому при параллаксе края не появляются.
-     */
+        self.view.bounds.size.height;
 
     CGFloat mountainWidth =
-        width;
+        width * 1.12;
 
     UIBezierPath *path =
         [UIBezierPath bezierPath];
 
     [path moveToPoint:
-        CGPointMake(
-            0.0,
-            height * 0.88
-        )];
+        CGPointMake(0.0, height * 0.88)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.07,
-            height * 0.77
-        )];
+        CGPointMake(mountainWidth * 0.08, height * 0.76)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.17,
-            height * 0.86
-        )];
+        CGPointMake(mountainWidth * 0.19, height * 0.87)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.29,
-            height * 0.70
-        )];
+        CGPointMake(mountainWidth * 0.32, height * 0.69)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.40,
-            height * 0.83
-        )];
+        CGPointMake(mountainWidth * 0.44, height * 0.82)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.53,
-            height * 0.65
-        )];
+        CGPointMake(mountainWidth * 0.57, height * 0.66)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.64,
-            height * 0.81
-        )];
+        CGPointMake(mountainWidth * 0.69, height * 0.83)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.76,
-            height * 0.70
-        )];
+        CGPointMake(mountainWidth * 0.81, height * 0.71)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth * 0.88,
-            height * 0.84
-        )];
+        CGPointMake(mountainWidth * 0.93, height * 0.84)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth,
-            height * 0.75
-        )];
+        CGPointMake(mountainWidth, height * 0.76)];
 
     [path addLineToPoint:
-        CGPointMake(
-            mountainWidth,
-            height
-        )];
+        CGPointMake(mountainWidth, height)];
 
     [path addLineToPoint:
-        CGPointMake(
-            0.0,
-            height
-        )];
+        CGPointMake(0.0, height)];
 
     [path closePath];
 
     self.mountainsLayer.path =
         path.CGPath;
 }
-
 
 #pragma mark - Configuration
 
@@ -382,26 +256,16 @@
 - (void)setupDecorations {
 
     /*
-     * Слои немного больше экрана.
-     * Это оставляет запас для параллакса при наклоне телефона.
-     */
-
-    const CGFloat parallaxPadding =
-        40.0;
-
-    /*
-     * Звёзды.
+     * Фоновые звёзды.
+     * Их слой немного больше экрана, чтобы при параллаксе
+     * по краям никогда не появлялись пустые участки.
      */
 
     self.starsLayer =
         [CALayer layer];
 
     self.starsLayer.frame =
-        CGRectInset(
-            self.view.bounds,
-            -parallaxPadding,
-            -parallaxPadding
-        );
+        CGRectInset(self.view.bounds, -30.0, -30.0);
 
     self.starsLayer.zPosition =
         1.0;
@@ -410,72 +274,27 @@
         addSublayer:self.starsLayer];
 
     NSArray *starPositions = @[
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.05, 0.08)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.14, 0.19)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.24, 0.07)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.34, 0.15)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.46, 0.06)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.58, 0.18)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.70, 0.08)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.83, 0.21)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.95, 0.11)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.08, 0.33)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.21, 0.42)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.36, 0.31)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.51, 0.40)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.65, 0.32)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.79, 0.43)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.92, 0.36)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.12, 0.54)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.29, 0.62)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.47, 0.55)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.63, 0.64)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.78, 0.56)],
-
-        [NSValue valueWithCGPoint:
-            CGPointMake(0.93, 0.67)]
+        [NSValue valueWithCGPoint:CGPointMake(0.07, 0.10)],
+        [NSValue valueWithCGPoint:CGPointMake(0.17, 0.23)],
+        [NSValue valueWithCGPoint:CGPointMake(0.29, 0.08)],
+        [NSValue valueWithCGPoint:CGPointMake(0.41, 0.18)],
+        [NSValue valueWithCGPoint:CGPointMake(0.54, 0.07)],
+        [NSValue valueWithCGPoint:CGPointMake(0.67, 0.20)],
+        [NSValue valueWithCGPoint:CGPointMake(0.80, 0.09)],
+        [NSValue valueWithCGPoint:CGPointMake(0.93, 0.25)],
+        [NSValue valueWithCGPoint:CGPointMake(0.10, 0.39)],
+        [NSValue valueWithCGPoint:CGPointMake(0.31, 0.34)],
+        [NSValue valueWithCGPoint:CGPointMake(0.52, 0.43)],
+        [NSValue valueWithCGPoint:CGPointMake(0.73, 0.36)],
+        [NSValue valueWithCGPoint:CGPointMake(0.90, 0.48)],
+        [NSValue valueWithCGPoint:CGPointMake(0.06, 0.57)],
+        [NSValue valueWithCGPoint:CGPointMake(0.24, 0.51)],
+        [NSValue valueWithCGPoint:CGPointMake(0.68, 0.55)],
+        [NSValue valueWithCGPoint:CGPointMake(0.94, 0.61)],
+        [NSValue valueWithCGPoint:CGPointMake(0.15, 0.72)],
+        [NSValue valueWithCGPoint:CGPointMake(0.38, 0.65)],
+        [NSValue valueWithCGPoint:CGPointMake(0.58, 0.73)],
+        [NSValue valueWithCGPoint:CGPointMake(0.82, 0.68)]
     ];
 
     for (NSValue *value in starPositions) {
@@ -517,17 +336,15 @@
 
     /*
      * Горы.
+     * Слой также немного шире экрана,
+     * чтобы параллакс не показывал края.
      */
 
     self.mountainsLayer =
         [CAShapeLayer layer];
 
     self.mountainsLayer.frame =
-        CGRectInset(
-            self.view.bounds,
-            -parallaxPadding,
-            0.0
-        );
+        CGRectInset(self.view.bounds, -30.0, 0.0);
 
     self.mountainsLayer.zPosition =
         2.0;
@@ -573,14 +390,8 @@
     self.smoothedPitch =
         0.0;
 
-    __block CFTimeInterval lastUpdate =
-        0.0;
-
     NSOperationQueue *queue =
         [[NSOperationQueue alloc] init];
-
-    queue.maxConcurrentOperationCount =
-        1;
 
     queue.qualityOfService =
         NSQualityOfServiceUserInteractive;
@@ -593,22 +404,6 @@
             return;
         }
 
-        CFTimeInterval now =
-            CACurrentMediaTime();
-
-        /*
-         * Не отправляем в main queue слишком
-         * частые обновления.
-         *
-         * Старые кадры не должны накапливаться.
-         */
-
-        if (now - lastUpdate < (1.0 / 30.0)) {
-            return;
-        }
-
-        lastUpdate = now;
-
         CGFloat roll =
             (CGFloat)motion.attitude.roll;
 
@@ -616,10 +411,10 @@
             (CGFloat)motion.attitude.pitch;
 
         roll =
-            MAX(-0.75, MIN(0.75, roll));
+            MAX(-0.65, MIN(0.65, roll));
 
         pitch =
-            MAX(-0.75, MIN(0.75, pitch));
+            MAX(-0.65, MIN(0.65, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -630,14 +425,11 @@
                 }
 
                 /*
-                 * Быстрое сглаживание.
-                 *
-                 * Старое значение быстро догоняет
-                 * реальное положение телефона.
+                 * Плавное сглаживание движения.
                  */
 
                 const CGFloat smoothing =
-                    0.22;
+                    0.12;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -648,53 +440,40 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.75;
+                    self.smoothedRoll / 0.65;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.75;
+                    self.smoothedPitch / 0.65;
 
                 /*
-                 * Звёзды.
-                 *
-                 * Большой слой движения создаёт
-                 * выраженный параллакс.
+                 * Звёзды находятся дальше,
+                 * поэтому двигаются сильнее.
                  */
-
-                CATransform3D starsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -38.0,
-                        normalizedPitch * -30.0,
-                        0.0
-                    );
 
                 self.starsLayer.transform =
-                    starsTransform;
-
-                /*
-                 * Горы.
-                 *
-                 * Двигаются меньше звёзд,
-                 * поэтому появляется ощущение глубины.
-                 */
-
-                CATransform3D mountainsTransform =
                     CATransform3DMakeTranslation(
-                        normalizedRoll * -22.0,
-                        normalizedPitch * -17.0,
+                        normalizedRoll * -24.0,
+                        normalizedPitch * -18.0,
                         0.0
                     );
 
+                /*
+                 * Горы находятся ближе,
+                 * поэтому двигаются мягче.
+                 */
+
                 self.mountainsLayer.transform =
-                    mountainsTransform;
+                    CATransform3DMakeTranslation(
+                        normalizedRoll * -14.0,
+                        normalizedPitch * -10.0,
+                        0.0
+                    );
             }
         );
     }];
 }
 
-
 - (void)stopMotionEffects {
-
-    self.heartbeatActive = NO;
 
     self.motionActive = NO;
 
@@ -702,9 +481,6 @@
         [self.motionManager stopDeviceMotionUpdates];
         self.motionManager = nil;
     }
-
-    self.referenceAttitude =
-        nil;
 
     [UIView animateWithDuration:0.25
                      animations:^{
@@ -901,7 +677,7 @@
 
         [self.logoView.heightAnchor
             constraintEqualToConstant:
-                appearance.logoSize * 1.20]
+                appearance.logoSize]
     ]];
 }
 
@@ -1090,13 +866,6 @@
         configuration.cornerStyle =
             UIButtonConfigurationCornerStyleCapsule;
 
-        configuration.background.strokeColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.38];
-
-        configuration.background.strokeWidth =
-            1.0;
-
         configuration.contentInsets =
             NSDirectionalEdgeInsetsMake(
                 0.0,
@@ -1109,16 +878,6 @@
             [UIButton buttonWithConfiguration:
                 configuration
                               primaryAction:nil];
-
-        button.layer.borderWidth =
-            1.0;
-
-        button.layer.borderColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.32].CGColor;
-
-        button.layer.masksToBounds =
-            YES;
 
     } else {
 
@@ -1151,18 +910,6 @@
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
 
-    button.layer.shadowColor =
-        UIColor.whiteColor.CGColor;
-
-    button.layer.shadowOpacity =
-        0.16;
-
-    button.layer.shadowRadius =
-        8.0;
-
-    button.layer.shadowOffset =
-        CGSizeZero;
-
     return button;
 }
 
@@ -1184,13 +931,6 @@
         configuration.cornerStyle =
             UIButtonConfigurationCornerStyleCapsule;
 
-        configuration.background.strokeColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.38];
-
-        configuration.background.strokeWidth =
-            1.0;
-
         configuration.contentInsets =
             NSDirectionalEdgeInsetsMake(
                 0.0,
@@ -1203,16 +943,6 @@
             [UIButton buttonWithConfiguration:
                 configuration
                               primaryAction:nil];
-
-        button.layer.borderWidth =
-            1.0;
-
-        button.layer.borderColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.32].CGColor;
-
-        button.layer.masksToBounds =
-            YES;
 
     } else {
 
@@ -1244,18 +974,6 @@
 
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
-
-    button.layer.shadowColor =
-        UIColor.whiteColor.CGColor;
-
-    button.layer.shadowOpacity =
-        0.20;
-
-    button.layer.shadowRadius =
-        10.0;
-
-    button.layer.shadowOffset =
-        CGSizeZero;
 
     return button;
 }
@@ -1303,42 +1021,17 @@
 
 - (void)continuePressed {
 
-    [self stopHeartbeat];
-    [self stopMotionEffects];
-
     [self dismissViewControllerAnimated:YES
                              completion:nil];
 }
 
 - (void)dontShowAgainPressed {
 
-    [self stopHeartbeat];
-    [self stopMotionEffects];
-
     [UserDefaultsWelcome
         markWelcomeAsSeen];
 
     [self dismissViewControllerAnimated:YES
                              completion:nil];
-}
-
-#pragma mark - Heartbeat Stop
-
-- (void)stopHeartbeat {
-
-    self.heartbeatActive = NO;
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-
-    if (@available(iOS 10.0, *)) {
-        self.heartbeatFeedback = nil;
-    }
-
-    [UIView animateWithDuration:0.12
-                     animations:^{
-        self.logoView.transform =
-            CGAffineTransformIdentity;
-    }];
 }
 
 #pragma mark - URL
@@ -1378,10 +1071,6 @@
         return;
     }
 
-    /*
-     * Появление стеклянной карточки.
-     */
-
     self.glassView.alpha =
         0.0;
 
@@ -1408,222 +1097,6 @@
         }
         completion:nil];
 }
-
-
-#pragma mark - Heartbeat
-
-- (void)startHeartbeat {
-
-    if (self.heartbeatActive) {
-        return;
-    }
-
-    if (!self.logoView) {
-        return;
-    }
-
-    self.heartbeatActive =
-        YES;
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [self performHeartbeatBeatOne];
-}
-
-- (void)performHeartbeatBeatOne {
-
-    if (!self.heartbeatActive ||
-        !self.logoView) {
-        return;
-    }
-
-    /*
-     * ТУК №1.
-     * Основной сильный удар.
-     */
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.115
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.15,
-                    1.15
-                );
-
-        }
-        completion:^(BOOL finished) {
-
-            if (!self.heartbeatActive) {
-                return;
-            }
-
-            [UIView animateWithDuration:
-                0.16
-                delay:0.0
-                options:
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionCurveEaseInOut
-                animations:^{
-
-                    self.logoView.transform =
-                        CGAffineTransformIdentity;
-
-                }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
-                        return;
-                    }
-
-                    /*
-                     * Короткий интервал
-                     * между двумя ударами.
-                     */
-
-                    dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.075 *
-                                NSEC_PER_SEC
-                            )
-                        ),
-                        dispatch_get_main_queue(),
-                        ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatTwo];
-                            }
-
-                        }
-                    );
-                }];
-        }];
-}
-
-- (void)performHeartbeatBeatTwo {
-
-    if (!self.heartbeatActive ||
-        !self.logoView) {
-        return;
-    }
-
-    /*
-     * ТУК №2.
-     * Второй удар немного слабее.
-     */
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.095
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.095,
-                    1.095
-                );
-
-        }
-        completion:^(BOOL finished) {
-
-            if (!self.heartbeatActive) {
-                return;
-            }
-
-            [UIView animateWithDuration:
-                0.145
-                delay:0.0
-                options:
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionCurveEaseInOut
-                animations:^{
-
-                    self.logoView.transform =
-                        CGAffineTransformIdentity;
-
-                }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
-                        return;
-                    }
-
-                    /*
-                     * Пауза перед следующим
-                     * сердцебиением.
-                     */
-
-                    dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.82 *
-                                NSEC_PER_SEC
-                            )
-                        ),
-                        dispatch_get_main_queue(),
-                        ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatOne];
-                            }
-
-                        }
-                    );
-                }];
-        }];
-}
-
 
 #pragma mark - Color
 

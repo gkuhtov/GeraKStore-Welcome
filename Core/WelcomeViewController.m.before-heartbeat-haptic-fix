@@ -36,9 +36,6 @@
 @property (nonatomic, strong) UIStackView *contentStack;
 @property (nonatomic, strong) UIStackView *socialStack;
 
-@property (nonatomic, strong) UIImpactFeedbackGenerator *heartbeatFeedback;
-@property (nonatomic, assign) BOOL heartbeatActive;
-
 @end
 
 @implementation WelcomeViewController
@@ -63,19 +60,6 @@
     [self setupActions];
     [self animateInterface];
     [self startMotionEffects];
-}
-
-- (void)viewDidAppear:(BOOL)animated {
-
-    [super viewDidAppear:animated];
-
-    /*
-     * Heartbeat запускаем после фактического
-     * появления экрана.
-     */
-
-    [self startHeartbeat];
-
 }
 
 #pragma mark - Adaptive Layout
@@ -567,59 +551,75 @@
     self.motionActive =
         YES;
 
+    self.referenceAttitude =
+        nil;
+
     self.smoothedRoll =
         0.0;
 
     self.smoothedPitch =
         0.0;
 
-    __block CFTimeInterval lastUpdate =
-        0.0;
-
     NSOperationQueue *queue =
         [[NSOperationQueue alloc] init];
-
-    queue.maxConcurrentOperationCount =
-        1;
 
     queue.qualityOfService =
         NSQualityOfServiceUserInteractive;
 
-    [manager startDeviceMotionUpdatesToQueue:queue
-                                  withHandler:
+    CMAttitudeReferenceFrame referenceFrame =
+        CMAttitudeReferenceFrameXArbitraryCorrectedZVertical;
+
+    [manager
+        startDeviceMotionUpdatesUsingReferenceFrame:
+            referenceFrame
+        toQueue:queue
+        withHandler:
         ^(CMDeviceMotion *motion, NSError *error) {
 
         if (error || !motion) {
             return;
         }
 
-        CFTimeInterval now =
-            CACurrentMediaTime();
-
         /*
-         * Не отправляем в main queue слишком
-         * частые обновления.
-         *
-         * Старые кадры не должны накапливаться.
+         * Первое положение телефона становится
+         * нулевой точкой параллакса.
          */
 
-        if (now - lastUpdate < (1.0 / 30.0)) {
+        if (!self.referenceAttitude) {
+
+            self.referenceAttitude =
+                [motion.attitude copy];
+
             return;
         }
 
-        lastUpdate = now;
+        /*
+         * Получаем изменение положения относительно
+         * исходного положения телефона.
+         */
+
+        CMAttitude *relativeAttitude =
+            [motion.attitude copy];
+
+        [relativeAttitude
+            multiplyByInverseOfAttitude:
+                self.referenceAttitude];
 
         CGFloat roll =
-            (CGFloat)motion.attitude.roll;
+            (CGFloat)relativeAttitude.roll;
 
         CGFloat pitch =
-            (CGFloat)motion.attitude.pitch;
+            (CGFloat)relativeAttitude.pitch;
+
+        /*
+         * Ограничиваем максимальное смещение.
+         */
 
         roll =
-            MAX(-0.75, MIN(0.75, roll));
+            MAX(-0.55, MIN(0.55, roll));
 
         pitch =
-            MAX(-0.75, MIN(0.75, pitch));
+            MAX(-0.55, MIN(0.55, pitch));
 
         dispatch_async(
             dispatch_get_main_queue(),
@@ -630,14 +630,11 @@
                 }
 
                 /*
-                 * Быстрое сглаживание.
-                 *
-                 * Старое значение быстро догоняет
-                 * реальное положение телефона.
+                 * Плавность движения.
                  */
 
                 const CGFloat smoothing =
-                    0.22;
+                    0.14;
 
                 self.smoothedRoll +=
                     (roll - self.smoothedRoll)
@@ -648,40 +645,66 @@
                     * smoothing;
 
                 CGFloat normalizedRoll =
-                    self.smoothedRoll / 0.75;
+                    self.smoothedRoll / 0.55;
 
                 CGFloat normalizedPitch =
-                    self.smoothedPitch / 0.75;
+                    self.smoothedPitch / 0.55;
 
                 /*
-                 * Звёзды.
+                 * ЗВЁЗДЫ.
                  *
-                 * Большой слой движения создаёт
-                 * выраженный параллакс.
+                 * Дальний слой.
+                 * Большое смещение.
                  */
 
                 CATransform3D starsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -38.0,
-                        normalizedPitch * -30.0,
+                    CATransform3DIdentity;
+
+                starsTransform =
+                    CATransform3DTranslate(
+                        starsTransform,
+                        normalizedRoll * -58.0,
+                        normalizedPitch * -44.0,
                         0.0
+                    );
+
+                starsTransform =
+                    CATransform3DRotate(
+                        starsTransform,
+                        normalizedRoll * -0.055,
+                        0.0,
+                        0.0,
+                        1.0
                     );
 
                 self.starsLayer.transform =
                     starsTransform;
 
                 /*
-                 * Горы.
+                 * ГОРЫ.
                  *
-                 * Двигаются меньше звёзд,
-                 * поэтому появляется ощущение глубины.
+                 * Ближний слой.
+                 * Смещение меньше.
                  */
 
                 CATransform3D mountainsTransform =
-                    CATransform3DMakeTranslation(
-                        normalizedRoll * -22.0,
-                        normalizedPitch * -17.0,
+                    CATransform3DIdentity;
+
+                mountainsTransform =
+                    CATransform3DTranslate(
+                        mountainsTransform,
+                        normalizedRoll * -34.0,
+                        normalizedPitch * -25.0,
                         0.0
+                    );
+
+                mountainsTransform =
+                    CATransform3DRotate(
+                        mountainsTransform,
+                        normalizedRoll * -0.030,
+                        0.0,
+                        0.0,
+                        1.0
                     );
 
                 self.mountainsLayer.transform =
@@ -691,10 +714,7 @@
     }];
 }
 
-
 - (void)stopMotionEffects {
-
-    self.heartbeatActive = NO;
 
     self.motionActive = NO;
 
@@ -901,7 +921,7 @@
 
         [self.logoView.heightAnchor
             constraintEqualToConstant:
-                appearance.logoSize * 1.20]
+                appearance.logoSize]
     ]];
 }
 
@@ -1151,18 +1171,6 @@
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
 
-    button.layer.shadowColor =
-        UIColor.whiteColor.CGColor;
-
-    button.layer.shadowOpacity =
-        0.16;
-
-    button.layer.shadowRadius =
-        8.0;
-
-    button.layer.shadowOffset =
-        CGSizeZero;
-
     return button;
 }
 
@@ -1245,18 +1253,6 @@
     button.translatesAutoresizingMaskIntoConstraints =
         NO;
 
-    button.layer.shadowColor =
-        UIColor.whiteColor.CGColor;
-
-    button.layer.shadowOpacity =
-        0.20;
-
-    button.layer.shadowRadius =
-        10.0;
-
-    button.layer.shadowOffset =
-        CGSizeZero;
-
     return button;
 }
 
@@ -1303,42 +1299,17 @@
 
 - (void)continuePressed {
 
-    [self stopHeartbeat];
-    [self stopMotionEffects];
-
     [self dismissViewControllerAnimated:YES
                              completion:nil];
 }
 
 - (void)dontShowAgainPressed {
 
-    [self stopHeartbeat];
-    [self stopMotionEffects];
-
     [UserDefaultsWelcome
         markWelcomeAsSeen];
 
     [self dismissViewControllerAnimated:YES
                              completion:nil];
-}
-
-#pragma mark - Heartbeat Stop
-
-- (void)stopHeartbeat {
-
-    self.heartbeatActive = NO;
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-
-    if (@available(iOS 10.0, *)) {
-        self.heartbeatFeedback = nil;
-    }
-
-    [UIView animateWithDuration:0.12
-                     animations:^{
-        self.logoView.transform =
-            CGAffineTransformIdentity;
-    }];
 }
 
 #pragma mark - URL
@@ -1406,224 +1377,39 @@
                 CGAffineTransformIdentity;
 
         }
-        completion:nil];
-}
-
-
-#pragma mark - Heartbeat
-
-- (void)startHeartbeat {
-
-    if (self.heartbeatActive) {
-        return;
-    }
-
-    if (!self.logoView) {
-        return;
-    }
-
-    self.heartbeatActive =
-        YES;
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [self performHeartbeatBeatOne];
-}
-
-- (void)performHeartbeatBeatOne {
-
-    if (!self.heartbeatActive ||
-        !self.logoView) {
-        return;
-    }
-
-    /*
-     * ТУК №1.
-     * Основной сильный удар.
-     */
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.115
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.15,
-                    1.15
-                );
-
-        }
         completion:^(BOOL finished) {
 
-            if (!self.heartbeatActive) {
+            if (!finished || !self.logoView) {
                 return;
             }
 
+            /*
+             * Сердцебиение только логотипа.
+             *
+             * Карточка больше не масштабируется.
+             */
+
             [UIView animateWithDuration:
-                0.16
-                delay:0.0
+                1.35
+                delay:0.15
                 options:
                     UIViewAnimationOptionAllowUserInteraction |
                     UIViewAnimationOptionBeginFromCurrentState |
+                    UIViewAnimationOptionAutoreverse |
+                    UIViewAnimationOptionRepeat |
                     UIViewAnimationOptionCurveEaseInOut
                 animations:^{
 
                     self.logoView.transform =
-                        CGAffineTransformIdentity;
+                        CGAffineTransformMakeScale(
+                            1.045,
+                            1.045
+                        );
 
                 }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
-                        return;
-                    }
-
-                    /*
-                     * Короткий интервал
-                     * между двумя ударами.
-                     */
-
-                    dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.075 *
-                                NSEC_PER_SEC
-                            )
-                        ),
-                        dispatch_get_main_queue(),
-                        ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatTwo];
-                            }
-
-                        }
-                    );
-                }];
+                completion:nil];
         }];
 }
-
-- (void)performHeartbeatBeatTwo {
-
-    if (!self.heartbeatActive ||
-        !self.logoView) {
-        return;
-    }
-
-    /*
-     * ТУК №2.
-     * Второй удар немного слабее.
-     */
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.095
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.095,
-                    1.095
-                );
-
-        }
-        completion:^(BOOL finished) {
-
-            if (!self.heartbeatActive) {
-                return;
-            }
-
-            [UIView animateWithDuration:
-                0.145
-                delay:0.0
-                options:
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionCurveEaseInOut
-                animations:^{
-
-                    self.logoView.transform =
-                        CGAffineTransformIdentity;
-
-                }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
-                        return;
-                    }
-
-                    /*
-                     * Пауза перед следующим
-                     * сердцебиением.
-                     */
-
-                    dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.82 *
-                                NSEC_PER_SEC
-                            )
-                        ),
-                        dispatch_get_main_queue(),
-                        ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatOne];
-                            }
-
-                        }
-                    );
-                }];
-        }];
-}
-
 
 #pragma mark - Color
 

@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "showOnFirstLaunchOnly": true,
+  "allowSkip": true,
+  "animationEnabled": true,
+  "forceShowForDebug": false
+}
