@@ -11,6 +11,7 @@
 
 @property (nonatomic, strong) CALayer *starsLayer;
 @property (nonatomic, strong) CAShapeLayer *mountainsLayer;
+@property (nonatomic, assign) BOOL ambientAnimationActive;
 
 @property (nonatomic, strong) UIVisualEffectView *glassView;
 @property (nonatomic, strong) UIView *glassTintView;
@@ -1619,62 +1620,6 @@
 }
 
 #pragma mark - Button Interaction
-
-- (void)buttonTouchDown:(UIButton *)button {
-
-    if (!button) {
-        return;
-    }
-
-    [UIView animateWithDuration:
-        0.10
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            button.transform =
-                CGAffineTransformMakeScale(
-                    0.965,
-                    0.965
-                );
-
-            button.alpha =
-                0.82;
-
-        }
-        completion:nil];
-}
-
-- (void)buttonTouchUp:(UIButton *)button {
-
-    if (!button) {
-        return;
-    }
-
-    [UIView animateWithDuration:
-        0.18
-        delay:0.0
-        usingSpringWithDamping:0.65
-        initialSpringVelocity:0.4
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState
-        animations:^{
-
-            button.transform =
-                CGAffineTransformIdentity;
-
-            button.alpha =
-                1.0;
-
-        }
-        completion:nil];
-}
-
-#pragma mark - URL
 
 - (void)openURLString:(NSString *)string {
 
