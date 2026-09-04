@@ -40,6 +40,7 @@
 
 @property (nonatomic, strong) UIImpactFeedbackGenerator *heartbeatFeedback;
 @property (nonatomic, assign) BOOL heartbeatActive;
+@property (nonatomic, assign) NSUInteger logoPulseGeneration;
 
 @end
 
@@ -72,13 +73,11 @@
 
     [super viewDidAppear:animated];
 
-    /*
-     * Heartbeat запускаем после фактического
-     * появления экрана.
-     */
+}
 
-    [self startHeartbeat];
-
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    [self stopLogoPulse];
 }
 
 #pragma mark - Adaptive Layout
@@ -1049,6 +1048,8 @@
     [self setupContinueButton];
 
     [self setupDontShowAgain:text.dontShowAgain];
+
+    [self setupLogoPulse];
 }
 
 #pragma mark - Logo
@@ -1603,20 +1604,7 @@
 #pragma mark - Heartbeat Stop
 
 - (void)stopHeartbeat {
-
-    self.heartbeatActive = NO;
-
-    [NSObject cancelPreviousPerformRequestsWithTarget:self];
-
-    if (@available(iOS 10.0, *)) {
-        self.heartbeatFeedback = nil;
-    }
-
-    [UIView animateWithDuration:0.12
-                     animations:^{
-        self.logoView.transform =
-            CGAffineTransformIdentity;
-    }];
+    [self stopLogoPulse];
 }
 
 #pragma mark - Button Interaction
@@ -1690,252 +1678,119 @@
 
 #pragma mark - Heartbeat
 
-- (void)startHeartbeat {
 
-    if (self.heartbeatActive) {
-        return;
-    }
+#pragma mark - Logo Pulse
 
-    if (!self.logoView) {
-        return;
-    }
+- (void)setupLogoPulse {
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+    if (!appearance.logoPulseEnabled || !self.logoView) return;
 
-    self.heartbeatActive =
-        YES;
+    self.heartbeatActive = YES;
+    self.logoPulseGeneration++;
+    NSUInteger generation = self.logoPulseGeneration;
 
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
+    if (appearance.logoHapticEnabled) {
+        self.heartbeatFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
         [self.heartbeatFeedback prepare];
     }
 
-    [self performHeartbeatBeatOne];
+    CGFloat scale = MAX(1.0, appearance.logoPulseScale);
+    CGFloat firstDuration = MAX(0.05, appearance.logoPulseFirstDuration);
+    CGFloat secondDuration = MAX(0.05, appearance.logoPulseSecondDuration);
+    CGFloat pause = MAX(0.05, appearance.logoPulsePause);
+
+    CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+    pulse.values = @[@1.0, @(scale), @1.0, @(scale * 0.985), @1.0];
+    pulse.keyTimes = @[@0.0, @0.16, @0.32, @0.45, @1.0];
+    pulse.duration = firstDuration + secondDuration + pause;
+    pulse.timingFunctions = @[
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut],
+        [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn]
+    ];
+    pulse.repeatCount = HUGE_VALF;
+    pulse.removedOnCompletion = NO;
+    pulse.fillMode = kCAFillModeBoth;
+
+    [self.logoView.layer addAnimation:pulse forKey:@"GeraKStoreWelcomeLogoPulse"];
+
+    if (appearance.logoHapticEnabled) {
+        [self performLogoHapticLoopWithDuration:pulse.duration generation:generation];
+    }
 }
 
-- (void)performHeartbeatBeatOne {
-
+- (void)performLogoHapticLoopWithDuration:(NSTimeInterval)duration generation:(NSUInteger)generation {
     if (!self.heartbeatActive ||
-        !self.logoView) {
+        generation != self.logoPulseGeneration ||
+        !self.logoView ||
+        !self.heartbeatFeedback) {
         return;
     }
 
-    /*
-     * ТУК №1.
-     * Основной сильный удар.
-     */
+    AppearanceConfig *appearance = self.config.appearanceConfig;
+    if (!appearance.logoPulseEnabled || !appearance.logoHapticEnabled) return;
 
-    if (@available(iOS 13.0, *)) {
+    NSTimeInterval firstImpactDelay = duration * 0.16;
+    NSTimeInterval secondImpactDelay = duration * 0.45;
 
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        dispatch_after(
-            dispatch_time(
-                DISPATCH_TIME_NOW,
-                (int64_t)(0.055 * NSEC_PER_SEC)
-            ),
-            dispatch_get_main_queue(),
-            ^{
-
-                if (self.heartbeatActive &&
-                    self.heartbeatFeedback) {
-
-                    [self.heartbeatFeedback impactOccurred];
-                    [self.heartbeatFeedback prepare];
-                }
-            }
-        );
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.115
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.15,
-                    1.15
-                );
-
-        }
-        completion:^(BOOL finished) {
-
-            if (!self.heartbeatActive) {
+    dispatch_after(
+        dispatch_time(
+            DISPATCH_TIME_NOW,
+            (int64_t)(firstImpactDelay * NSEC_PER_SEC)
+        ),
+        dispatch_get_main_queue(),
+        ^{
+            if (!self.heartbeatActive ||
+                generation != self.logoPulseGeneration ||
+                !self.heartbeatFeedback) {
                 return;
             }
 
-            [UIView animateWithDuration:
-                0.16
-                delay:0.0
-                options:
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionCurveEaseInOut
-                animations:^{
+            [self.heartbeatFeedback impactOccurred];
+            [self.heartbeatFeedback prepare];
 
-                    self.logoView.transform =
-                        CGAffineTransformIdentity;
-
-                }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
+            dispatch_after(
+                dispatch_time(
+                    DISPATCH_TIME_NOW,
+                    (int64_t)((secondImpactDelay - firstImpactDelay) * NSEC_PER_SEC)
+                ),
+                dispatch_get_main_queue(),
+                ^{
+                    if (!self.heartbeatActive ||
+                        generation != self.logoPulseGeneration ||
+                        !self.heartbeatFeedback) {
                         return;
                     }
 
-                    /*
-                     * Короткий интервал
-                     * между двумя ударами.
-                     */
+                    [self.heartbeatFeedback impactOccurred];
+                    [self.heartbeatFeedback prepare];
 
                     dispatch_after(
                         dispatch_time(
                             DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.075 *
-                                NSEC_PER_SEC
-                            )
+                            (int64_t)((duration - secondImpactDelay) * NSEC_PER_SEC)
                         ),
                         dispatch_get_main_queue(),
                         ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatTwo];
-                            }
-
+                            [self performLogoHapticLoopWithDuration:duration
+                                                          generation:generation];
                         }
                     );
-                }];
-        }];
-}
-
-- (void)performHeartbeatBeatTwo {
-
-    if (!self.heartbeatActive ||
-        !self.logoView) {
-        return;
-    }
-
-    /*
-     * ТУК №2.
-     * Второй удар немного слабее.
-     */
-
-    if (@available(iOS 13.0, *)) {
-
-        self.heartbeatFeedback =
-            [[UIImpactFeedbackGenerator alloc]
-                initWithStyle:
-                    UIImpactFeedbackStyleHeavy];
-
-        [self.heartbeatFeedback prepare];
-
-        [self.heartbeatFeedback impactOccurred];
-
-        dispatch_after(
-            dispatch_time(
-                DISPATCH_TIME_NOW,
-                (int64_t)(0.055 * NSEC_PER_SEC)
-            ),
-            dispatch_get_main_queue(),
-            ^{
-
-                if (self.heartbeatActive &&
-                    self.heartbeatFeedback) {
-
-                    [self.heartbeatFeedback impactOccurred];
-                    [self.heartbeatFeedback prepare];
                 }
-            }
-        );
-
-        [self.heartbeatFeedback prepare];
-    }
-
-    [UIView animateWithDuration:
-        0.095
-        delay:0.0
-        options:
-            UIViewAnimationOptionAllowUserInteraction |
-            UIViewAnimationOptionBeginFromCurrentState |
-            UIViewAnimationOptionCurveEaseOut
-        animations:^{
-
-            self.logoView.transform =
-                CGAffineTransformMakeScale(
-                    1.095,
-                    1.095
-                );
-
+            );
         }
-        completion:^(BOOL finished) {
-
-            if (!self.heartbeatActive) {
-                return;
-            }
-
-            [UIView animateWithDuration:
-                0.145
-                delay:0.0
-                options:
-                    UIViewAnimationOptionAllowUserInteraction |
-                    UIViewAnimationOptionBeginFromCurrentState |
-                    UIViewAnimationOptionCurveEaseInOut
-                animations:^{
-
-                    self.logoView.transform =
-                        CGAffineTransformIdentity;
-
-                }
-                completion:^(BOOL finished) {
-
-                    if (!self.heartbeatActive) {
-                        return;
-                    }
-
-                    /*
-                     * Пауза перед следующим
-                     * сердцебиением.
-                     */
-
-                    dispatch_after(
-                        dispatch_time(
-                            DISPATCH_TIME_NOW,
-                            (int64_t)(
-                                0.82 *
-                                NSEC_PER_SEC
-                            )
-                        ),
-                        dispatch_get_main_queue(),
-                        ^{
-
-                            if (self.heartbeatActive) {
-                                [self performHeartbeatBeatOne];
-                            }
-
-                        }
-                    );
-                }];
-        }];
+    );
 }
 
+- (void)stopLogoPulse {
+    self.heartbeatActive = NO;
+    self.logoPulseGeneration++;
+
+    [self.logoView.layer removeAnimationForKey:@"GeraKStoreWelcomeLogoPulse"];
+
+    self.heartbeatFeedback = nil;
+}
 
 #pragma mark - Color
 
