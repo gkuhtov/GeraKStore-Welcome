@@ -150,7 +150,7 @@ jobs:
           clang \
             -O2 \
             insert_dylib/main.c \
-            -o insert_dylib
+            -o /tmp/insert_dylib_bin
 
           chmod +x /tmp/insert_dylib_bin
 
