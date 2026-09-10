@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / build output
+DerivedData/
+build/
+*.dylib
+*.deb
+*.framework/
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*~
