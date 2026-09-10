@@ -1,0 +1,238 @@
+name: Inject WelcomeToSpace into IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inject:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify input IPA
+        run: |
+          set -e
+
+          echo "=== INPUT IPA ==="
+          ls -lh test-ipa/GeraKMusic-original.ipa
+
+      - name: Build current WelcomeToSpace dylib
+        run: |
+          set -e
+
+          xcrun --sdk iphoneos clang \
+            -dynamiclib \
+            -fobjc-arc \
+            -miphoneos-version-min=14.0 \
+            -install_name @rpath/GeraKStoreWelcome.dylib \
+            -framework Foundation \
+            -framework UIKit \
+            -framework QuartzCore \
+            -framework CoreGraphics \
+            -framework CoreMotion \
+            WelcomeToSpace/Core/GeraKStoreWelcome.m \
+            WelcomeToSpace/Core/WelcomeManager.m \
+            WelcomeToSpace/Core/WelcomeViewController.m \
+            WelcomeToSpace/Core/UserDefaults+Welcome.m \
+            WelcomeToSpace/Core/EmbeddedResourceLoader.m \
+            WelcomeToSpace/Configuration/WelcomeConfig.m \
+            WelcomeToSpace/Configuration/Models/AppConfig.m \
+            WelcomeToSpace/Configuration/Models/TextConfig.m \
+            WelcomeToSpace/Configuration/Models/LinksConfig.m \
+            WelcomeToSpace/Configuration/Models/AppearanceConfig.m \
+            -IWelcomeToSpace \
+            -IWelcomeToSpace/Configuration \
+            -IWelcomeToSpace/Configuration/Models \
+            -IWelcomeToSpace/Core \
+            -sectcreate __DATA __welcome_config \
+              WelcomeToSpace/Resources/Config/config.json \
+            -sectcreate __DATA __welcome_texts \
+              WelcomeToSpace/Resources/Config/texts.json \
+            -sectcreate __DATA __welcome_links \
+              WelcomeToSpace/Resources/Config/links.json \
+            -sectcreate __DATA __welcome_app \
+              WelcomeToSpace/Resources/Config/appearance.json \
+            -sectcreate __DATA __welcome_logo \
+              WelcomeToSpace/Resources/Assets/GeraKStoreWelcome.png \
+            -o GeraKStoreWelcome.dylib
+
+          echo
+          echo "=== BUILT DYLIB ==="
+          file GeraKStoreWelcome.dylib
+
+      - name: Verify embedded resources
+        run: |
+          set -e
+
+          echo "=== EMBEDDED SECTIONS ==="
+
+          xcrun --sdk iphoneos otool -l \
+            GeraKStoreWelcome.dylib |
+            grep -A5 -E \
+              "__welcome_config|__welcome_texts|__welcome_links|__welcome_app|__welcome_logo"
+
+      - name: Prepare IPA
+        run: |
+          set -e
+
+          mkdir -p work
+
+          unzip -q \
+            test-ipa/GeraKMusic-original.ipa \
+            -d work
+
+          APP=$(find work/Payload \
+            -maxdepth 1 \
+            -type d \
+            -name "*.app" \
+            | head -n 1)
+
+          if [ -z "$APP" ]; then
+            echo "ERROR: .app not found"
+            exit 1
+          fi
+
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+          echo
+          echo "=== APP ==="
+          echo "$APP"
+
+      - name: Install WelcomeToSpace dylib
+        run: |
+          set -e
+
+          mkdir -p "$APP/Frameworks"
+
+          cp \
+            GeraKStoreWelcome.dylib \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          chmod 755 \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          echo "=== FRAMEWORKS ==="
+          ls -lh "$APP/Frameworks"
+
+      - name: Inspect application executable
+        run: |
+          set -e
+
+          EXECUTABLE=$(
+            /usr/libexec/PlistBuddy \
+              -c "Print :CFBundleExecutable" \
+              "$APP/Info.plist"
+          )
+
+          echo "EXECUTABLE=$EXECUTABLE" >> "$GITHUB_ENV"
+
+          echo "Executable: $EXECUTABLE"
+
+          echo
+          echo "=== ORIGINAL LOAD COMMANDS ==="
+
+          xcrun otool -L \
+            "$APP/$EXECUTABLE"
+
+      - name: Build insert_dylib
+        run: |
+          set -e
+
+          git clone \
+            --depth 1 \
+            https://github.com/tyilo/insert_dylib.git \
+            /tmp/insert_dylib
+
+          cd /tmp/insert_dylib
+
+          clang \
+            -O2 \
+            insert_dylib/main.c \
+            -o insert_dylib
+
+          chmod +x insert_dylib
+
+          echo "=== insert_dylib ==="
+          ./insert_dylib --help || true
+
+      - name: Inject WelcomeToSpace
+        run: |
+          set -e
+
+          DYLIB="@executable_path/Frameworks/GeraKStoreWelcome.dylib"
+
+          /tmp/insert_dylib/insert_dylib \
+            --all-yes \
+            --strip-codesig \
+            "$DYLIB" \
+            "$APP/$EXECUTABLE" \
+            "$APP/$EXECUTABLE.patched"
+
+          mv \
+            "$APP/$EXECUTABLE.patched" \
+            "$APP/$EXECUTABLE"
+
+          echo
+          echo "=== PATCHED LOAD COMMANDS ==="
+
+          xcrun otool -L \
+            "$APP/$EXECUTABLE"
+
+      - name: Verify injection
+        run: |
+          set -e
+
+          echo "=== SEARCH GeraKStoreWelcome ==="
+
+          xcrun otool -L \
+            "$APP/$EXECUTABLE" |
+            grep -F \
+              "GeraKStoreWelcome.dylib"
+
+          echo
+          echo "SUCCESS: GeraKStoreWelcome is referenced by executable"
+
+      - name: Verify injected dylib
+        run: |
+          set -e
+
+          echo "=== DYLIB ==="
+
+          file \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          echo
+          xcrun otool -D \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+          echo
+          xcrun otool -L \
+            "$APP/Frameworks/GeraKStoreWelcome.dylib"
+
+      - name: Package IPA
+        run: |
+          set -e
+
+          cd work
+
+          rm -f ../GeraKMusic-WelcomeToSpace.ipa
+
+          zip -qry \
+            ../GeraKMusic-WelcomeToSpace.ipa \
+            Payload
+
+          cd ..
+
+          echo
+          echo "=== RESULT ==="
+
+          ls -lh \
+            GeraKMusic-WelcomeToSpace.ipa
+
+      - name: Upload injected IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeraKMusic-WelcomeToSpace
+          path: GeraKMusic-WelcomeToSpace.ipa
