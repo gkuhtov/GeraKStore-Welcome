@@ -638,7 +638,7 @@
 
     [self.starsLayer
         addAnimation:stars
-        forKey:@"gerastore.ambient.stars"];
+        forKey:@"gerakstore.ambient.stars"];
 
     /*
      * Едва заметное дыхание гор.
@@ -662,7 +662,7 @@
 
         [self.mountainsLayer
             addAnimation:mountains
-            forKey:@"gerastore.ambient.mountains"];
+            forKey:@"gerakstore.ambient.mountains"];
     }
 }
 
@@ -672,11 +672,11 @@
 
     [self.starsLayer
         removeAnimationForKey:
-            @"gerastore.ambient.stars"];
+            @"gerakstore.ambient.stars"];
 
     [self.mountainsLayer
         removeAnimationForKey:
-            @"gerastore.ambient.mountains"];
+            @"gerakstore.ambient.mountains"];
 }
 
 #pragma mark - Motion
