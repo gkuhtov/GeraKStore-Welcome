@@ -152,10 +152,10 @@ jobs:
             insert_dylib/main.c \
             -o insert_dylib
 
-          chmod +x insert_dylib
+          chmod +x /tmp/insert_dylib_bin
 
           echo "=== insert_dylib ==="
-          ./insert_dylib --help || true
+          /tmp/insert_dylib_bin --help || true
 
       - name: Inject WelcomeToSpace
         run: |
@@ -163,7 +163,7 @@ jobs:
 
           DYLIB="@executable_path/Frameworks/GeraKStoreWelcome.dylib"
 
-          /tmp/insert_dylib/insert_dylib \
+          /tmp/insert_dylib_bin \
             --all-yes \
             --strip-codesig \
             "$DYLIB" \
