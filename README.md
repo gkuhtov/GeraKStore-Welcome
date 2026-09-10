@@ -1,135 +1,135 @@
 # GeraKStore Welcome
 
 <p align="center">
-  <strong>Universal Welcome Screens for GeraKStore</strong><br>
-  <sub>Native iOS welcome experiences for injected IPA applications</sub>
+  <strong>Универсальные приветственные экраны для GeraKStore</strong><br>
+  <sub>Нативные iOS-экраны приветствия для IPA-приложений</sub>
 </p>
 
 <p align="center">
-  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-dylib.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-dylib.yml/badge.svg" alt="WelcomeToSpace Build"></a>
-  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-welcome-to-japan.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-welcome-to-japan.yml/badge.svg" alt="WelcomeToJapan Build"></a>
-  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/inject-welcome-to-space.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/inject-welcome-to-space.yml/badge.svg" alt="Space Injection"></a>
+  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-dylib.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-dylib.yml/badge.svg" alt="Сборка WelcomeToSpace"></a>
+  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-welcome-to-japan.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/build-welcome-to-japan.yml/badge.svg" alt="Сборка WelcomeToJapan"></a>
+  <a href="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/inject-welcome-to-space.yml"><img src="https://github.com/gkuhtov/GeraKStore-Welcome/actions/workflows/inject-welcome-to-space.yml/badge.svg" alt="Инъекция WelcomeToSpace"></a>
 </p>
 
 <p align="center">
-  <a href="#overview">Overview</a> ·
-  <a href="#welcome-to-space">Space</a> ·
-  <a href="#welcome-to-japan">Japan</a> ·
-  <a href="#configuration">Configuration</a> ·
-  <a href="#build--injection">Build</a> ·
-  <a href="#project-structure">Structure</a>
+  <a href="#обзор">Обзор</a> ·
+  <a href="#welcometospace">Space</a> ·
+  <a href="#welcometojapan">Japan</a> ·
+  <a href="#настройка">Настройка</a> ·
+  <a href="#сборка-и-инъекция">Сборка</a> ·
+  <a href="#структура-проекта">Структура</a>
 </p>
 
 ---
 
-## Overview
+## Обзор
 
-**GeraKStore Welcome** is a collection of lightweight Objective-C welcome screens designed for iOS applications distributed through GeraKStore.
+**GeraKStore Welcome** - набор лёгких приветственных экранов на Objective-C для iOS-приложений, распространяемых через GeraKStore.
 
-The repository brings together two independent visual implementations with a shared goal: create a recognizable, polished and reusable welcome experience that feels like part of the application rather than an external installer screen.
+Репозиторий объединяет две независимые визуальные реализации с общей задачей: создать узнаваемый, аккуратный и переиспользуемый экран приветствия, который ощущается частью приложения, а не отдельным установщиком.
 
-### Included
+### В проекте
 
-| Component | Style | Purpose |
+| Компонент | Стиль | Назначение |
 |---|---|---|
-| **WelcomeToSpace** | Dark · Liquid Glass · Glow | Modern universal welcome screen |
-| **WelcomeToJapan** | Japanese · Illustrated · Parallax | Decorative alternative welcome screen |
-
-Both implementations are built as dynamic libraries and are intended for injection into compatible IPA applications.
+| **WelcomeToSpace** | Тёмный · Liquid Glass · Свечение | Современный универсальный экран приветствия |
+| **WelcomeToJapan** | Японская стилистика · Иллюстрация · Параллакс | Декоративный экран приветствия |
 
 ---
 
 ## WelcomeToSpace
 
-A modern GeraKStore welcome screen focused on Apple's Liquid Glass visual language.
+Современная версия приветственного экрана в тёмной стилистике GeraKStore.
 
-### Highlights
+### Возможности
 
-- iOS-style Liquid Glass interface
-- Dark graphite visual language
-- Pink and cyan accent lighting
-- Animated background glow
-- Configurable title and subtitle
-- Telegram, GitHub and Continue actions
-- Optional **Don't show again** behavior
-- Configurable appearance, layout and animation parameters
-- JSON configuration with embedded-resource fallback
-- Dedicated GitHub Actions build workflow
-- Separate IPA injection workflow for testing
-
-The universal UI does not depend on a specific application name or version, allowing the same welcome implementation to be reused across compatible applications.
+- iOS-стиль Liquid Glass
+- Тёмная графитовая основа
+- Розовые и бирюзовые акценты
+- Анимированное фоновое свечение
+- Настраиваемые заголовок и описание
+- Кнопки Telegram, GitHub и «Продолжить»
+- Опция «Больше не показывать»
+- Настраиваемые параметры внешнего вида и анимации
+- Конфигурация через JSON
+- Резервная загрузка ресурсов из встроенных Mach-O секций
+- Сборка через GitHub Actions
 
 ---
 
 ## WelcomeToJapan
 
-A Japanese-inspired alternative built around illustration, layered artwork and decorative elements.
+Отдельная визуальная реализация в японской стилистике с иллюстрированной сценой и декоративными элементами.
 
-### Highlights
+### Возможности
 
-- Custom Japanese-style background artwork
-- Decorative side plaques
-- GeraKStore branding
-- Configurable texts and links
-- Configurable visual parameters
-- Dedicated dynamic-library build
-- Independent GitHub Actions workflow
-
-The implementation is kept independent from `WelcomeToSpace`, so the two visual directions can evolve separately without unnecessary coupling.
-
----
-
-## Configuration
-
-`WelcomeToSpace` keeps user-facing settings separated from the main UI implementation.
-
-### Configuration files
-
-| File | Controls |
-|---|---|
-| `config.json` | General behavior and feature flags |
-| `texts.json` | Visible interface text |
-| `links.json` | Telegram and GitHub links |
-| `appearance.json` | Colors, glass, layout and animation |
-
-Configuration is handled through `WelcomeConfig` and `EmbeddedResourceLoader`.
-
-When an external configuration is unavailable, resources can be loaded from embedded Mach-O sections inside the dylib. This provides a self-contained fallback while keeping customization separate from the UI code.
+- Японская визуальная композиция
+- Пользовательский фон
+- Декоративные таблички и брендинг GeraKStore
+- Настраиваемые тексты и ссылки
+- Настраиваемые визуальные элементы
+- Поддержка параллакса
+- Отдельная сборка динамической библиотеки
+- Собственный GitHub Actions workflow
 
 ---
 
-## Build & Injection
+## Настройка
 
-All primary builds are performed through **GitHub Actions** on macOS runners.
+Для **WelcomeToSpace** пользовательские параметры отделены от основной реализации интерфейса.
+
+Основные конфигурационные файлы:
+
+- `config.json` - общие параметры и функции
+- `texts.json` - тексты интерфейса
+- `links.json` - ссылки Telegram и GitHub
+- `appearance.json` - цвета, параметры стекла, размеры, отступы и анимация
+
+Конфигурация загружается через `WelcomeConfig` и `EmbeddedResourceLoader`. Если внешние ресурсы недоступны, библиотека может использовать ресурсы, встроенные непосредственно в Mach-O.
+
+Это позволяет изменять внешний вид и содержимое экрана без переписывания основной логики интерфейса.
+
+---
+
+## Сборка и инъекция
+
+Сборка проекта выполняется через **GitHub Actions** на macOS runners.
 
 ### WelcomeToSpace
 
-`build-dylib.yml` builds the `GeraKStoreWelcome.dylib` and packages the required configuration and logo resources as an artifact.
+Workflow `build-dylib.yml` собирает `GeraKStoreWelcome.dylib` и формирует артефакт с библиотекой и необходимыми ресурсами.
 
-`inject-welcome-to-space.yml` uses the repository test IPA, builds the current welcome dylib, injects it into the application and produces a test IPA artifact.
+Workflow `inject-welcome-to-space.yml` используется для проверки инъекции WelcomeToSpace в тестовый IPA.
 
 ### WelcomeToJapan
 
-`build-welcome-to-japan.yml` builds the Japanese implementation independently and publishes its dynamic-library build as a workflow artifact.
+Workflow `build-welcome-to-japan.yml` независимо собирает динамическую библиотеку WelcomeToJapan и формирует отдельный артефакт.
 
-The repository workflow does not require a local macOS development environment on the Windows development PC.
+Локальная сборка на macOS для этого рабочего процесса не требуется.
 
 ---
 
-## Test IPA
+## Тестовый IPA
 
-The repository contains a minimal test target used by the Space injection workflow:
+Для проверки инъекции **WelcomeToSpace** используется:
 
 ```text
- test-ipa/
- └── GeraKMusic-original.ipa
+test-ipa/GeraKMusic-original.ipa
 ```
 
-The test IPA is used only as the injection target for validating the `WelcomeToSpace` workflow.
+Результатом workflow инъекции является тестовый IPA с подключённой библиотекой WelcomeToSpace.
 
 ---
 
-## Project Structure
+## Инъекция
+
+Приветственные экраны рассчитаны на использование в качестве внедряемых динамических библиотек в совместимых IPA-пакетах.
+
+Универсальный интерфейс не привязан к конкретному приложению, игре или версии. Это позволяет использовать одну реализацию Welcome в разных IPA.
+
+---
+
+## Структура проекта
 
 ```text
 GeraKStore-Welcome/
@@ -154,55 +154,47 @@ GeraKStore-Welcome/
 │   └── control
 │
 ├── test-ipa/
-│   └── GeraKMusic-original.ipa
-│
-├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Design Philosophy
+## Философия проекта
 
-> **The welcome screen should feel like part of the application, not an external installer window.**
+Главная идея GeraKStore Welcome проста:
 
-`WelcomeToSpace` achieves this through depth, translucency, blur, restrained animation and subtle pink/cyan lighting.
+> Приветственный экран должен ощущаться частью приложения, а не отдельным окном установщика.
 
-`WelcomeToJapan` takes a different direction, using illustration, layered artwork and Japanese-inspired decorative elements.
+**WelcomeToSpace** делает акцент на глубине, прозрачности, размытии, мягком свечении и аккуратной анимации.
 
-Different styles, same purpose: a compact and recognizable **GeraKStore Welcome Experience**.
+**WelcomeToJapan** использует другой подход: иллюстрацию, многослойную композицию, декоративные элементы и японскую визуальную стилистику.
+
+Несмотря на различия, обе реализации создаются как единый узнаваемый опыт GeraKStore.
 
 ---
 
-## Status
+## Статус
 
-### Implemented
+Репозиторий находится в активной разработке.
 
 - [x] WelcomeToSpace
 - [x] WelcomeToJapan
-- [x] Configurable UI settings
-- [x] Embedded resource support
-- [x] GitHub Actions build pipelines
-- [x] WelcomeToSpace IPA injection workflow
-- [x] Repository cleanup and documentation
-
-### Next
-
-- [ ] Further visual polish
-- [ ] Deeper GeraStoreManager integration
+- [x] Настраиваемые параметры интерфейса
+- [x] Встроенные ресурсы
+- [x] Сборка через GitHub Actions
+- [x] Workflow для проверки инъекции WelcomeToSpace в IPA
+- [ ] Дальнейшая полировка интерфейса
+- [ ] Более глубокая интеграция с GeraStoreManager
 
 ---
 
-## Repository
+## Репозиторий
 
-<p align="center">
-  <strong>GeraKStore Welcome</strong><br>
-  Universal welcome experience for GeraKStore
-</p>
+**GeraKStore Welcome**
 
-<p align="center">
-  Maintained by <strong>GeraK</strong>
-</p>
+https://github.com/gkuhtov/GeraKStore-Welcome
+
+Создано и поддерживается **GeraK**.
 
 ---
 
