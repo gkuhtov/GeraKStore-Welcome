@@ -86,6 +86,14 @@
 
     [super viewDidLayoutSubviews];
 
+    for (CALayer *layer in self.glassTintView.layer.sublayers) {
+        if ([layer isKindOfClass:CAGradientLayer.class]) {
+            layer.frame = self.glassTintView.bounds;
+            layer.cornerRadius =
+                self.config.appearanceConfig.glassCornerRadius;
+        }
+    }
+
     if (self.backgroundGlowLayer) {
 
         CGFloat size =
@@ -944,6 +952,89 @@
     self.glassView.clipsToBounds =
         YES;
 
+    /*
+     * Дополнительная глубина стекла.
+     * На iOS 26 основной эффект даёт UIGlassEffect,
+     * а этот слой добавляет очень мягкое внутреннее свечение.
+     */
+    self.glassTintView =
+        [[UIView alloc] init];
+
+    self.glassTintView.translatesAutoresizingMaskIntoConstraints =
+        NO;
+
+    self.glassTintView.backgroundColor =
+        [UIColor.whiteColor
+            colorWithAlphaComponent:0.018];
+
+    CAGradientLayer *glassReflection =
+        [CAGradientLayer layer];
+
+    glassReflection.colors = @[
+        (id)[UIColor colorWithRed:0.125
+                            green:0.878
+                             blue:0.816
+                            alpha:0.075].CGColor,
+
+        (id)[UIColor colorWithRed:1.0
+                            green:0.310
+                             blue:0.639
+                            alpha:0.045].CGColor,
+
+        (id)[UIColor clearColor].CGColor
+    ];
+
+    glassReflection.startPoint =
+        CGPointMake(0.0, 0.0);
+
+    glassReflection.endPoint =
+        CGPointMake(1.0, 1.0);
+
+    glassReflection.frame =
+        CGRectZero;
+
+    glassReflection.cornerRadius =
+        appearance.glassCornerRadius;
+
+    [self.glassTintView.layer
+        addSublayer:glassReflection];
+
+    self.glassTintView.userInteractionEnabled =
+        NO;
+
+    self.glassTintView.layer.cornerRadius =
+        appearance.glassCornerRadius;
+
+    self.glassTintView.clipsToBounds =
+        YES;
+
+    [self.glassView.contentView
+        addSubview:self.glassTintView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.glassTintView.topAnchor
+            constraintEqualToAnchor:
+                self.glassView.contentView.topAnchor],
+
+        [self.glassTintView.leadingAnchor
+            constraintEqualToAnchor:
+                self.glassView.contentView.leadingAnchor],
+
+        [self.glassTintView.trailingAnchor
+            constraintEqualToAnchor:
+                self.glassView.contentView.trailingAnchor],
+
+        [self.glassTintView.bottomAnchor
+            constraintEqualToAnchor:
+                self.glassView.contentView.bottomAnchor]
+    ]];
+
+    /*
+     * Контент должен находиться поверх tint-слоя.
+     * UIStackView добавляется позже, поэтому дополнительных
+     * действий здесь не требуется.
+     */
+
     if (@available(iOS 26.0, *)) {
 
         self.glassView.layer.borderWidth =
@@ -1300,13 +1391,6 @@
                 configuration
                               primaryAction:nil];
 
-        button.layer.borderWidth =
-            1.0;
-
-        button.layer.borderColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.32].CGColor;
-
         button.layer.masksToBounds =
             YES;
 
@@ -1393,13 +1477,6 @@
             [UIButton buttonWithConfiguration:
                 configuration
                               primaryAction:nil];
-
-        button.layer.borderWidth =
-            1.0;
-
-        button.layer.borderColor =
-            [UIColor.whiteColor
-                colorWithAlphaComponent:0.32].CGColor;
 
         button.layer.masksToBounds =
             YES;
@@ -1516,25 +1593,6 @@
 
 - (void)setupActions {
 
-    NSArray *buttons = @[
-        self.telegramButton,
-        self.githubButton,
-        self.continueButton,
-        self.dontShowAgainButton
-    ];
-
-    for (UIButton *button in buttons) {
-        [button addTarget:self
-                   action:@selector(buttonTouchDown:)
-         forControlEvents:UIControlEventTouchDown];
-
-        [button addTarget:self
-                   action:@selector(buttonTouchUp:)
-         forControlEvents:
-             UIControlEventTouchUpInside |
-             UIControlEventTouchUpOutside |
-             UIControlEventTouchCancel];
-    }
 
     [self.telegramButton
         addTarget:self
