@@ -17,13 +17,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Install Dependencies
         run: |
-          echo "Setting up build environment..."
+          brew install ldid
 
-      - name: Install Theos
+      - name: Setup Theos & SDKs
         run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          curl -fsSL https://github.com/theos/sdks/archive/master.zip -o ~/sdks.zip
+          unzip -q ~/sdks.zip -d ~/
+          mv ~/sdks-master/*.sdk ~/theos/sdks/
+          rm -rf ~/sdks.zip ~/sdks-master
 
       - name: Build Tweak
         run: |
