@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "WelcomeToJapan/**"
+      - ".github/workflows/build-welcome-to-japan.yml"
   workflow_dispatch:
 
 jobs:
@@ -16,55 +19,21 @@ jobs:
 
       - name: Setup Environment
         run: |
-          echo "THEOS=/Users/runner/theos" >> "$GITHUB_ENV"
+          echo "Setting up build environment..."
 
-      - name: Install Dependencies
+      - name: Install Theos
         run: |
-          brew install ldid
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-      - name: Install Theos Directly
+      - name: Build Tweak
         run: |
-          git clone --recursive \
-            https://github.com/theos/theos.git \
-            "$THEOS"
-
-      - name: Install iOS SDKs
-        run: |
-          curl -fsSL \
-            https://github.com/theos/sdks/archive/master.zip \
-            -o sdks.zip
-
-          unzip -q sdks.zip
-
-          mkdir -p "$THEOS/sdks"
-          cp -r sdks-master/* "$THEOS/sdks/" || true
-
-          rm -rf sdks-master sdks.zip
-
-      - name: Build WelcomeToJapan
-        working-directory: WelcomeToJapan
-        run: |
-          set -e
-
+          export THEOS=~/theos
+          cd WelcomeToJapan
           make clean
-          make FINALPACKAGE=1
+          make package FINALPACKAGE=1
 
-          mkdir -p output
-
-          find .theos/obj \
-            -name "*.dylib" \
-            -exec cp {} output/ \;
-
-          find packages \
-            -name "*.deb" \
-            -exec cp {} output/ \; \
-            2>/dev/null || true
-
-          echo "=== BUILD OUTPUT ==="
-          find output -type f -maxdepth 2 -print
-
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WelcomeToJapan-Build
-          path: WelcomeToJapan/output/*
+          name: WelcomeToJapan-deb
+          path: WelcomeToJapan/packages/*.deb

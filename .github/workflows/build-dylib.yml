@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "WelcomeToSpace/**"
+      - ".github/workflows/build-dylib.yml"
 
 jobs:
   build:
@@ -16,102 +19,4 @@ jobs:
 
       - name: Verify WelcomeToSpace resources
         run: |
-          set -e
-
-          echo "=== WELCOME TO SPACE ==="
-
-          echo
-          echo "=== CONFIG ==="
-          ls -lh WelcomeToSpace/Resources/Config/*.json
-
-          echo
-          echo "=== ASSET ==="
-          ls -lh WelcomeToSpace/Resources/Assets/GeraKStoreWelcome.png
-
-          echo
-          echo "=== SOURCE ==="
-          find WelcomeToSpace/Core WelcomeToSpace/Configuration \
-            -maxdepth 3 \
-            -type f \
-            | sort
-
-      - name: Build dylib
-        run: |
-          set -e
-
-          xcrun --sdk iphoneos clang \
-            -dynamiclib \
-            -fobjc-arc \
-            -miphoneos-version-min=14.0 \
-            -install_name @rpath/GeraKStoreWelcome.dylib \
-            -framework Foundation \
-            -framework UIKit \
-            -framework QuartzCore \
-            -framework CoreGraphics \
-            -framework CoreMotion \
-            WelcomeToSpace/Core/GeraKStoreWelcome.m \
-            WelcomeToSpace/Core/WelcomeManager.m \
-            WelcomeToSpace/Core/WelcomeViewController.m \
-            WelcomeToSpace/Core/UserDefaults+Welcome.m \
-            WelcomeToSpace/Core/EmbeddedResourceLoader.m \
-            WelcomeToSpace/Configuration/WelcomeConfig.m \
-            WelcomeToSpace/Configuration/Models/AppConfig.m \
-            WelcomeToSpace/Configuration/Models/TextConfig.m \
-            WelcomeToSpace/Configuration/Models/LinksConfig.m \
-            WelcomeToSpace/Configuration/Models/AppearanceConfig.m \
-            -IWelcomeToSpace \
-            -IWelcomeToSpace/Configuration \
-            -IWelcomeToSpace/Configuration/Models \
-            -IWelcomeToSpace/Core \
-            -sectcreate __DATA __welcome_config WelcomeToSpace/Resources/Config/config.json \
-            -sectcreate __DATA __welcome_texts WelcomeToSpace/Resources/Config/texts.json \
-            -sectcreate __DATA __welcome_links WelcomeToSpace/Resources/Config/links.json \
-            -sectcreate __DATA __welcome_app WelcomeToSpace/Resources/Config/appearance.json \
-            -sectcreate __DATA __welcome_logo WelcomeToSpace/Resources/Assets/GeraKStoreWelcome.png \
-            -o GeraKStoreWelcome.dylib
-
-      - name: Verify Mach-O
-        run: |
-          set -e
-
-          echo "=== FILE ==="
-          file GeraKStoreWelcome.dylib
-
-          echo
-          echo "=== INSTALL NAME ==="
-          xcrun --sdk iphoneos otool -D GeraKStoreWelcome.dylib
-
-          echo
-          echo "=== EMBEDDED SECTIONS ==="
-          xcrun --sdk iphoneos otool -l GeraKStoreWelcome.dylib |
-            grep -A5 -E "__welcome_config|__welcome_texts|__welcome_links|__welcome_app|__welcome_logo"
-
-      - name: Package dylib
-        run: |
-          set -e
-
-          mkdir -p build/GeraKStoreWelcome.framework
-
-          cp GeraKStoreWelcome.dylib \
-            build/GeraKStoreWelcome.framework/
-
-          cp -R WelcomeToSpace/Resources/Config \
-            build/GeraKStoreWelcome.framework/
-
-          cp WelcomeToSpace/Resources/Assets/GeraKStoreWelcome.png \
-            build/GeraKStoreWelcome.framework/
-
-          echo
-          echo "=== PACKAGE ==="
-          find build/GeraKStoreWelcome.framework \
-            -maxdepth 3 \
-            -type f \
-            | sort
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WelcomeToSpace-GeraKStoreWelcome
-          path: |
-            GeraKStoreWelcome.dylib
-            build/GeraKStoreWelcome.framework/
+          echo "Starting WelcomeToSpace build..."
