@@ -65,8 +65,9 @@
     self.view.backgroundColor = [UIColor blackColor];
     self.modalInPresentation = YES;
 
-    self.heavyFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
-    self.lightFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+    // Усиленные генераторы тактильного отклика: Heavy для главного удара, Medium для эха
+    self.heavyFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
+    self.lightFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
     [self.heavyFeedback prepare];
     [self.lightFeedback prepare];
 
@@ -284,10 +285,14 @@
 
 - (void)buttonTouchHaptic {
     [self.heavyFeedback prepare];
-    [self.heavyFeedback impactOccurred];
+    if (@available(iOS 13.0, *)) {
+        [self.heavyFeedback impactOccurredWithIntensity:1.0];
+    } else {
+        [self.heavyFeedback impactOccurred];
+    }
 }
 
-#pragma mark - Синхронизированный тактовый кардио-движок
+#pragma mark - Усиленный тактовый кардио-движок
 
 - (void)startHeartbeatCycle {
     if (self.heartbeatActive) return;
@@ -298,7 +303,7 @@
 - (void)performSynchronizedPulseStep {
     if (!self.heartbeatActive) return;
 
-    // 1. Одиночная тактовая анимация систолы
+    // 1. Анимация систолы
     CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
     pulse.values = @[@1.0, @1.08, @1.02, @1.05, @1.0];
     pulse.keyTimes = @[@0.0, @0.10, @0.18, @0.28, @1.0];
@@ -307,18 +312,26 @@
     pulse.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     [self.metalLogoView.layer addAnimation:pulse forKey:@"welcome.japan.singleBeat"];
 
-    // 2. Фаза 1 (0.00с): Первый мощный толчок точно в момент начала расширения лого
+    // 2. Фаза 1 (0.00с): Первый мощный удар (Heavy на 100% мощности)
     [self.heavyFeedback prepare];
-    [self.heavyFeedback impactOccurred];
+    if (@available(iOS 13.0, *)) {
+        [self.heavyFeedback impactOccurredWithIntensity:1.0];
+    } else {
+        [self.heavyFeedback impactOccurred];
+    }
 
-    // 3. Фаза 2 (0.13с): Второй мягкий толчок (эхо) точно на пике вторичного подскока
+    // 3. Фаза 2 (0.13с): Второй удар (Medium на 85% мощности)
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.13 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.heartbeatActive) return;
         [self.lightFeedback prepare];
-        [self.lightFeedback impactOccurred];
+        if (@available(iOS 13.0, *)) {
+            [self.lightFeedback impactOccurredWithIntensity:0.85];
+        } else {
+            [self.lightFeedback impactOccurred];
+        }
     });
 
-    // 4. Фаза 3 (1.15с): Прогрев моторчика Taptic Engine перед следующим циклом
+    // 4. Фаза 3 (1.15с): Прогрев катушки за 100 мс до удара
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.heartbeatActive) return;
         [self.heavyFeedback prepare];
