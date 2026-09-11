@@ -287,45 +287,54 @@
     [self.heavyFeedback impactOccurred];
 }
 
+#pragma mark - Синхронизированный тактовый кардио-движок
+
 - (void)startHeartbeatCycle {
     if (self.heartbeatActive) return;
     self.heartbeatActive = YES;
-
-    CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
-    pulse.values = @[@1.0, @1.08, @1.02, @1.06, @1.0];
-    pulse.keyTimes = @[@0.0, @0.12, @0.22, @0.32, @1.0];
-    pulse.duration = 1.2;
-    pulse.repeatCount = HUGE_VALF;
-    pulse.removedOnCompletion = NO;
-    pulse.fillMode = kCAFillModeForwards;
-    pulse.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    [self.metalLogoView.layer addAnimation:pulse forKey:@"welcome.japan.heartbeat"];
-
-    [self triggerHeartbeatHapticStep];
+    [self performSynchronizedPulseStep];
 }
 
-- (void)triggerHeartbeatHapticStep {
+- (void)performSynchronizedPulseStep {
     if (!self.heartbeatActive) return;
 
+    // 1. Одиночная тактовая анимация систолы
+    CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+    pulse.values = @[@1.0, @1.08, @1.02, @1.05, @1.0];
+    pulse.keyTimes = @[@0.0, @0.10, @0.18, @0.28, @1.0];
+    pulse.duration = 1.25;
+    pulse.removedOnCompletion = YES;
+    pulse.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    [self.metalLogoView.layer addAnimation:pulse forKey:@"welcome.japan.singleBeat"];
+
+    // 2. Фаза 1 (0.00с): Первый мощный толчок точно в момент начала расширения лого
     [self.heavyFeedback prepare];
     [self.heavyFeedback impactOccurred];
 
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.12 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // 3. Фаза 2 (0.13с): Второй мягкий толчок (эхо) точно на пике вторичного подскока
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.13 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.heartbeatActive) return;
         [self.lightFeedback prepare];
         [self.lightFeedback impactOccurred];
     });
 
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // 4. Фаза 3 (1.15с): Прогрев моторчика Taptic Engine перед следующим циклом
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (!self.heartbeatActive) return;
+        [self.heavyFeedback prepare];
+    });
+
+    // 5. Фаза 4 (1.25с): Запуск следующего такта
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (self.heartbeatActive) {
-            [self triggerHeartbeatHapticStep];
+            [self performSynchronizedPulseStep];
         }
     });
 }
 
 - (void)stopHeartbeatCycle {
     self.heartbeatActive = NO;
-    [self.metalLogoView.layer removeAnimationForKey:@"welcome.japan.heartbeat"];
+    [self.metalLogoView.layer removeAnimationForKey:@"welcome.japan.singleBeat"];
 }
 
 - (void)addParallaxEffectToView:(UIView *)target depth:(CGFloat)depth {

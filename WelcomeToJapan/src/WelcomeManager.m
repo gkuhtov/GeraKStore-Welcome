@@ -7,6 +7,8 @@
 
 @implementation WelcomeManager
 
+static BOOL sessionColdLaunchHandled = NO;
+
 + (instancetype)sharedManager {
     static WelcomeManager *manager = nil;
     static dispatch_once_t onceToken;
@@ -21,20 +23,32 @@
 }
 
 - (void)startWelcomeIfNeeded {
-    if (self.isPresenting || [self hasSeenWelcome]) {
+    // 1. Игнорируем, если уже обрабатывали в этой сессии процесса
+    if (sessionColdLaunchHandled || self.isPresenting || [self hasSeenWelcome]) {
         return;
     }
+
+    // 2. Сразу отписываемся от пробуждений приложения (чтобы не срабатывало при выходе из фона)
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:UIApplicationDidBecomeActiveNotification
+                                                  object:nil];
+
     [self presentWelcomeWithFastRetry:0];
 }
 
 - (void)presentWelcomeWithFastRetry:(NSInteger)retryCount {
-    if (self.isPresenting || [self hasSeenWelcome]) return;
+    if (sessionColdLaunchHandled || self.isPresenting || [self hasSeenWelcome]) {
+        return;
+    }
 
     UIWindow *keyWindow = [self resolveKeyWindow];
     UIViewController *topVC = [self topViewControllerFrom:keyWindow.rootViewController];
 
     if (topVC && ![topVC isKindOfClass:[WelcomeViewController class]]) {
+        // Фиксируем факт показа в памяти текущего процесса
+        sessionColdLaunchHandled = YES;
         self.isPresenting = YES;
+
         WelcomeViewController *welcomeVC = [[WelcomeViewController alloc] init];
         welcomeVC.modalPresentationStyle = UIModalPresentationFullScreen;
         welcomeVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
@@ -44,10 +58,13 @@
         return;
     }
 
+    // Микро-проверка каждые 30 мс до монтирования контроллера
     if (retryCount < 30) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.03 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self presentWelcomeWithFastRetry:retryCount + 1];
         });
+    } else {
+        sessionColdLaunchHandled = YES;
     }
 }
 
