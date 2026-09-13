@@ -102,6 +102,9 @@
     [self setupBottomActions];
     [self applyMultiDepthParallax];
 
+    // Выносим блок кнопок поверх виньетки
+    [self.sceneContainer bringSubviewToFront:self.bottomActionsLayer];
+
     [self prepareInitialEntryStates];
 }
 
@@ -147,10 +150,10 @@
     self.vignetteLayer.type = kCAGradientLayerRadial;
     self.vignetteLayer.colors = @[
         (id)[UIColor clearColor].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.30].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.75].CGColor
+        (id)[UIColor colorWithWhite:0.0 alpha:0.25].CGColor,
+        (id)[UIColor colorWithWhite:0.0 alpha:0.65].CGColor
     ];
-    self.vignetteLayer.locations = @[@0.0, @0.62, @1.0];
+    self.vignetteLayer.locations = @[@0.0, @0.65, @1.0];
     self.vignetteLayer.startPoint = CGPointMake(0.5, 0.5);
     self.vignetteLayer.endPoint = CGPointMake(1.0, 1.0);
     self.vignetteLayer.frame = self.view.bounds;
@@ -192,7 +195,6 @@
     self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
     [self.sceneContainer addSubview:self.headerInfoLayer];
 
-    // Матовое темное стекло с благородной золотой окантовкой
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     glassView.frame = CGRectMake(0, 95, headerW, 120);
@@ -219,7 +221,6 @@
 
     [self setupLogoShimmerEffect];
 
-    // Текст отцентрирован внутри плашки
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 110, headerW - 16, 28)];
     title.text = cfg.headlineText;
     title.textAlignment = NSTextAlignmentCenter;
@@ -265,7 +266,6 @@
     UIImage *rawPlaques = [self imageFromBase64:kPlaquesBase64] ?: [UIImage imageNamed:@"plaques.png"];
     UIImage *singlePlaque = [self extractSinglePlaque:rawPlaques];
 
-    // Выравнивание строго по вертикальному центру плашки
     CGFloat cardCenterY = (screenH * 0.38) + 95 + 60;
     CGFloat plaqueY = cardCenterY - (cfg.plaqueSize.height / 2.0) + 45;
 
@@ -359,6 +359,7 @@
     CGFloat bottomY = screenH * 0.77;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
+    self.bottomActionsLayer.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
     [self.sceneContainer addSubview:self.bottomActionsLayer];
 
     CGFloat btnSpacing = 12.0;
@@ -394,26 +395,32 @@
 - (UIButton *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
     btn.frame = frame;
-    btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.75];
+    btn.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
+    btn.backgroundColor = [UIColor colorWithRed:0.14 green:0.10 blue:0.08 alpha:0.88];
     btn.layer.cornerRadius = 14.0;
-    btn.layer.borderWidth = 0.8;
-    btn.layer.borderColor = [UIColor colorWithRed:0.88 green:0.78 blue:0.62 alpha:0.45].CGColor;
+    btn.layer.borderWidth = 0.9;
+    btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
     
     btn.layer.shadowColor = [UIColor blackColor].CGColor;
-    btn.layer.shadowOpacity = 0.40;
+    btn.layer.shadowOpacity = 0.45;
     btn.layer.shadowRadius = 8.0;
     btn.layer.shadowOffset = CGSizeMake(0, 4);
 
-    // Вложенный UILabel — гарантирует 100% стабильный благородный айвори цвет
+    // Шрифт и цвет один в один как у надписи GeraKStore на центральной плашке:
+    // Georgia-Medium 16pt, теплый золотистый оттенок (#F2DCB3) и мягкая тень
     UILabel *label = [[UILabel alloc] initWithFrame:btn.bounds];
     label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     label.text = title;
     label.textAlignment = NSTextAlignmentCenter;
-    label.font = [UIFont boldSystemFontOfSize:15.5];
-    label.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0];
+    
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:16.0];
+    if (!storeFont) storeFont = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+    label.font = storeFont;
+    label.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
+    label.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
     
     label.layer.shadowColor = [UIColor blackColor].CGColor;
-    label.layer.shadowOpacity = 0.50;
+    label.layer.shadowOpacity = 0.60;
     label.layer.shadowRadius = 2.0;
     label.layer.shadowOffset = CGSizeMake(0, 1.0);
     label.userInteractionEnabled = NO;
