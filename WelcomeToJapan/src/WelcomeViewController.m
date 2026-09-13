@@ -11,14 +11,11 @@
 @property (nonatomic, strong) CAGradientLayer *vignetteLayer;
 @property (nonatomic, strong) CAEmitterLayer *particleEmitter;
 
-@property (nonatomic, strong) UIView *plaquesLayer;
 @property (nonatomic, strong) UIView *headerInfoLayer;
 @property (nonatomic, strong) UIView *bottomActionsLayer;
 
 @property (nonatomic, strong) UIImageView *metalLogoView;
 @property (nonatomic, strong) CAGradientLayer *shimmerLayer;
-@property (nonatomic, strong) UIView *leftPlaqueView;
-@property (nonatomic, strong) UIView *rightPlaqueView;
 
 @property (nonatomic, assign) BOOL heartbeatActive;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *heavyFeedback;
@@ -50,24 +47,6 @@
     return cleanImage ?: image;
 }
 
-- (UIImage *)extractSinglePlaque:(UIImage *)sourceImage {
-    if (!sourceImage) return nil;
-    CGImageRef cgImg = sourceImage.CGImage;
-    if (!cgImg) return sourceImage;
-    
-    size_t fullW = CGImageGetWidth(cgImg);
-    size_t fullH = CGImageGetHeight(cgImg);
-    if (fullW == 0 || fullH == 0) return sourceImage;
-    
-    CGRect cropRect = CGRectMake(0, 0, (CGFloat)fullW * 0.48, (CGFloat)fullH);
-    CGImageRef croppedRef = CGImageCreateWithImageInRect(cgImg, cropRect);
-    if (!croppedRef) return sourceImage;
-    
-    UIImage *plaque = [UIImage imageWithCGImage:croppedRef scale:sourceImage.scale orientation:sourceImage.imageOrientation];
-    CGImageRelease(croppedRef);
-    return plaque ?: sourceImage;
-}
-
 - (UIImage *)generateParticleDotImage {
     CGSize size = CGSizeMake(8, 8);
     UIGraphicsBeginImageContextWithOptions(size, NO, 0.0);
@@ -97,7 +76,6 @@
 
     [self setupBackground];
     [self setupVignetteAndParticles];
-    [self setupPlaques];
     [self setupHeaderInfo];
     [self setupBottomActions];
     [self applyMultiDepthParallax];
@@ -147,10 +125,10 @@
     self.vignetteLayer.type = kCAGradientLayerRadial;
     self.vignetteLayer.colors = @[
         (id)[UIColor clearColor].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.35].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.75].CGColor
+        (id)[UIColor colorWithWhite:0.0 alpha:0.30].CGColor,
+        (id)[UIColor colorWithWhite:0.0 alpha:0.72].CGColor
     ];
-    self.vignetteLayer.locations = @[@0.0, @0.60, @1.0];
+    self.vignetteLayer.locations = @[@0.0, @0.62, @1.0];
     self.vignetteLayer.startPoint = CGPointMake(0.5, 0.5);
     self.vignetteLayer.endPoint = CGPointMake(1.0, 1.0);
     self.vignetteLayer.frame = self.view.bounds;
@@ -180,98 +158,36 @@
     [self.sceneContainer.layer addSublayer:self.particleEmitter];
 }
 
-- (void)setupPlaques {
-    WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
-    CGFloat screenW = self.view.bounds.size.width;
-    CGFloat screenH = self.view.bounds.size.height;
-
-    self.plaquesLayer = [[UIView alloc] initWithFrame:self.sceneContainer.bounds];
-    [self.sceneContainer addSubview:self.plaquesLayer];
-
-    UIImage *rawPlaques = [self imageFromBase64:kPlaquesBase64] ?: [UIImage imageNamed:@"plaques.png"];
-    UIImage *singlePlaque = [self extractSinglePlaque:rawPlaques];
-
-    CGFloat leftX = cfg.leftPlaqueOrigin.x + 45;
-    CGFloat leftY = (screenH * cfg.leftPlaqueOrigin.y) + 45;
-    self.leftPlaqueView = [self buildPlaqueViewWithImage:singlePlaque
-                                                   text:cfg.leftPlaqueText
-                                                  frame:CGRectMake(leftX, leftY, cfg.plaqueSize.width, cfg.plaqueSize.height)
-                                                isRight:NO];
-    [self.plaquesLayer addSubview:self.leftPlaqueView];
-
-    CGFloat rightX = screenW - cfg.rightPlaqueOrigin.x - cfg.plaqueSize.width + 45;
-    CGFloat rightY = (screenH * cfg.rightPlaqueOrigin.y) + 45;
-    self.rightPlaqueView = [self buildPlaqueViewWithImage:singlePlaque
-                                                    text:cfg.rightPlaqueText
-                                                   frame:CGRectMake(rightX, rightY, cfg.plaqueSize.width, cfg.plaqueSize.height)
-                                                 isRight:YES];
-    [self.plaquesLayer addSubview:self.rightPlaqueView];
-}
-
-- (UIView *)buildPlaqueViewWithImage:(UIImage *)plaqueImage text:(NSString *)text frame:(CGRect)frame isRight:(BOOL)isRight {
-    UIView *container = [[UIView alloc] initWithFrame:frame];
-
-    UIImageView *plaqueBg = [[UIImageView alloc] initWithFrame:container.bounds];
-    plaqueBg.contentMode = UIViewContentModeScaleToFill;
-    plaqueBg.image = plaqueImage;
-    plaqueBg.layer.shadowColor = [UIColor blackColor].CGColor;
-    plaqueBg.layer.shadowOpacity = 0.65;
-    plaqueBg.layer.shadowRadius = 14.0;
-    plaqueBg.layer.shadowOffset = CGSizeMake(isRight ? -5 : 5, 9);
-    [container addSubview:plaqueBg];
-
-    CGFloat topPadding = 32.0;
-    CGFloat bottomPadding = 30.0;
-    CGFloat innerW = frame.size.width - 12.0;
-    CGFloat innerH = frame.size.height - topPadding - bottomPadding;
-
-    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(6.0, topPadding, innerW, innerH)];
-    lbl.text = text;
-    lbl.textAlignment = NSTextAlignmentCenter;
-    lbl.numberOfLines = 0;
-    lbl.font = [UIFont systemFontOfSize:18 weight:UIFontWeightHeavy];
-    lbl.textColor = [UIColor colorWithRed:0.20 green:0.11 blue:0.06 alpha:0.98];
-    
-    lbl.layer.shadowColor = [UIColor colorWithRed:0.98 green:0.93 blue:0.86 alpha:0.85].CGColor;
-    lbl.layer.shadowOpacity = 1.0;
-    lbl.layer.shadowRadius = 0.6;
-    lbl.layer.shadowOffset = CGSizeMake(0, 1.0);
-    [container addSubview:lbl];
-
-    return container;
-}
-
 - (void)setupHeaderInfo {
     WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
     CGFloat screenW = self.view.bounds.size.width;
     CGFloat screenH = self.view.bounds.size.height;
 
-    // Сделали чуть компактнее по ширине (screenW - 160), чтобы был воздух до боковых плашек
-    CGFloat headerW = screenW - 160;
+    // Сбалансированная ширина карточки (screenW - 90), так как боковых плашек больше нет
+    CGFloat headerW = screenW - 90;
     CGFloat headerH = 240;
     CGFloat startY = screenH * 0.38;
 
     self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
     [self.sceneContainer addSubview:self.headerInfoLayer];
 
-    // Легкое стекло с мягкой подложкой и ювелирной золотой каймой
+    // Матовое стекло с мягким золотистым кантом
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     glassView.frame = CGRectMake(0, 95, headerW, 120);
-    glassView.layer.cornerRadius = 20.0;
-    glassView.layer.borderWidth = 0.6;
+    glassView.layer.cornerRadius = 22.0;
+    glassView.layer.borderWidth = 0.7;
     glassView.layer.borderColor = [UIColor colorWithRed:0.88 green:0.78 blue:0.60 alpha:0.35].CGColor;
     glassView.clipsToBounds = YES;
-    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.45];
+    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.25];
     [self.headerInfoLayer addSubview:glassView];
 
     UIImage *rawLogo = [self imageFromBase64:kStoreLogoBase64] ?: [UIImage imageNamed:@"store_logo.png"];
     UIImage *cleanLogo = [self removeBlackBackground:rawLogo];
 
-    CGFloat logoW = 230.0;
-    CGFloat logoH = 115.0;
-    // Сместили логотип ниже (-5 pt вместо -14 pt), чтобы он органично садился на плашку
-    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -5, logoW, logoH)];
+    CGFloat logoW = 240.0;
+    CGFloat logoH = 120.0;
+    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, 5, logoW, logoH)];
     self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
     self.metalLogoView.image = cleanLogo;
     self.metalLogoView.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -282,38 +198,35 @@
 
     [self setupLogoShimmerEffect];
 
-    // Контрастный заголовок цвета теплого айвори
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 112, headerW - 16, 30)];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(12, 114, headerW - 24, 30)];
     title.text = cfg.headlineText;
     title.textAlignment = NSTextAlignmentCenter;
-    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:22.5];
-    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:22];
+    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:23.0];
+    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:22.5];
     title.font = serifFont;
     title.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.93 alpha:1.0];
     title.layer.shadowColor = [UIColor blackColor].CGColor;
-    title.layer.shadowOpacity = 0.50;
+    title.layer.shadowOpacity = 0.55;
     title.layer.shadowRadius = 3.0;
     title.layer.shadowOffset = CGSizeMake(0, 1.5);
     [self.headerInfoLayer addSubview:title];
 
-    // Мягкий золотистый подзаголовок
-    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(8, 146, headerW - 16, 18)];
+    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(12, 147, headerW - 24, 18)];
     subLine1.text = cfg.sublineText;
     subLine1.textAlignment = NSTextAlignmentCenter;
-    subLine1.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightMedium];
-    subLine1.textColor = [UIColor colorWithRed:0.86 green:0.80 blue:0.72 alpha:0.85];
+    subLine1.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
+    subLine1.textColor = [UIColor colorWithRed:0.88 green:0.83 blue:0.75 alpha:0.88];
     [self.headerInfoLayer addSubview:subLine1];
 
-    // Яркая подпись источника (слоновая кость с акцентом)
-    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 168, headerW - 16, 24)];
+    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(12, 169, headerW - 24, 24)];
     subLine2.text = cfg.storeSubtitleText;
     subLine2.textAlignment = NSTextAlignmentCenter;
-    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:15.5];
-    if (!storeFont) storeFont = [UIFont systemFontOfSize:15.5 weight:UIFontWeightSemibold];
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:16.0];
+    if (!storeFont) storeFont = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
     subLine2.font = storeFont;
-    subLine2.textColor = [UIColor colorWithRed:0.94 green:0.85 blue:0.68 alpha:1.0];
+    subLine2.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
-    subLine2.layer.shadowOpacity = 0.40;
+    subLine2.layer.shadowOpacity = 0.45;
     subLine2.layer.shadowRadius = 2.0;
     subLine2.layer.shadowOffset = CGSizeMake(0, 1.0);
     [self.headerInfoLayer addSubview:subLine2];
@@ -358,7 +271,7 @@
 
     CGFloat actionsW = screenW - 80;
     CGFloat actionsH = 160;
-    CGFloat bottomY = screenH * 0.77;
+    CGFloat bottomY = screenH * 0.73;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
     [self.sceneContainer addSubview:self.bottomActionsLayer];
@@ -381,7 +294,7 @@
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     neverBtn.frame = CGRectMake(0, 114, actionsW, 26);
     [neverBtn setTitle:cfg.neverShowText forState:UIControlStateNormal];
-    [neverBtn setTitleColor:[UIColor colorWithRed:0.90 green:0.86 blue:0.80 alpha:0.80] forState:UIControlStateNormal];
+    [neverBtn setTitleColor:[UIColor colorWithRed:0.92 green:0.88 blue:0.82 alpha:0.85] forState:UIControlStateNormal];
     neverBtn.titleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
     [neverBtn addTarget:self action:@selector(neverShowAgain) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:neverBtn];
@@ -390,14 +303,12 @@
 - (UIButton *)createThemeButton:(NSString *)title frame:(CGRect)frame {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
     btn.frame = frame;
-    // Полупрозрачное темное стекло вместо глухого коричневого блока
-    btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.75];
+    btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.65];
     [btn setTitle:title forState:UIControlStateNormal];
     [btn setTitleColor:[UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0] forState:UIControlStateNormal];
     btn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
     btn.layer.cornerRadius = 14.0;
     
-    // Тонкая золотистая окантовка
     btn.layer.borderWidth = 0.7;
     btn.layer.borderColor = [UIColor colorWithRed:0.80 green:0.70 blue:0.55 alpha:0.40].CGColor;
     
@@ -433,12 +344,6 @@
 - (void)prepareInitialEntryStates {
     self.backgroundImageView.alpha = 0.0;
     self.vignetteLayer.opacity = 0.0;
-    
-    self.leftPlaqueView.transform = CGAffineTransformMakeTranslation(0, -60);
-    self.leftPlaqueView.alpha = 0.0;
-
-    self.rightPlaqueView.transform = CGAffineTransformMakeTranslation(0, -60);
-    self.rightPlaqueView.alpha = 0.0;
 
     self.headerInfoLayer.transform = CGAffineTransformMakeScale(0.90, 0.90);
     self.headerInfoLayer.alpha = 0.0;
@@ -453,21 +358,16 @@
         self.vignetteLayer.opacity = 1.0;
     } completion:nil];
 
-    [UIView animateWithDuration:1.1 delay:0.15 usingSpringWithDamping:0.80 initialSpringVelocity:0.4 options:0 animations:^{
-        self.leftPlaqueView.transform = CGAffineTransformIdentity;
-        self.leftPlaqueView.alpha = 1.0;
-        self.rightPlaqueView.transform = CGAffineTransformIdentity;
-        self.rightPlaqueView.alpha = 1.0;
-    } completion:nil];
-
-    [UIView animateWithDuration:1.0 delay:0.28 usingSpringWithDamping:0.75 initialSpringVelocity:0.6 options:0 animations:^{
+    // Центральная карточка мягко разворачивается на пружине
+    [UIView animateWithDuration:1.0 delay:0.18 usingSpringWithDamping:0.75 initialSpringVelocity:0.6 options:0 animations:^{
         self.headerInfoLayer.transform = CGAffineTransformIdentity;
         self.headerInfoLayer.alpha = 1.0;
     } completion:^(BOOL finished) {
         if (completion) completion();
     }];
 
-    [UIView animateWithDuration:0.9 delay:0.40 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
+    // Кнопки всплывают следом снизу
+    [UIView animateWithDuration:0.9 delay:0.32 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
         self.bottomActionsLayer.transform = CGAffineTransformIdentity;
         self.bottomActionsLayer.alpha = 1.0;
     } completion:nil];
@@ -544,9 +444,7 @@
 }
 
 - (void)applyMultiDepthParallax {
-    WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
     [self addParallaxEffectToView:self.backgroundImageView depth:6.0];
-    [self addParallaxEffectToView:self.plaquesLayer depth:cfg.plaqueParallaxDepth];
     [self addParallaxEffectToView:self.headerInfoLayer depth:26.0];
     [self addParallaxEffectToView:self.metalLogoView depth:48.0];
     [self addParallaxEffectToView:self.bottomActionsLayer depth:20.0];
