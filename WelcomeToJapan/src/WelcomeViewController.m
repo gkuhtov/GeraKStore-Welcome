@@ -210,7 +210,7 @@
     [self.sceneContainer.layer insertSublayer:self.particleEmitter above:self.vignetteLayer];
 }
 
-#pragma mark - Touch Trail (Шлейф золотых искр за пальцем)
+#pragma mark - Touch Trail
 
 - (void)setupTouchEmitter {
     self.touchEmitter = [CAEmitterLayer layer];
@@ -453,15 +453,17 @@
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    UIControl *tgBtn = [self createCrystalButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
+    // Кнопки соцсетей в стиле центральной карточки (матовый тёмный блюр + золотой кант)
+    UIControl *tgBtn = [self createCardThemedButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
 
-    UIControl *ghBtn = [self createCrystalButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46) fontSize:16.0];
+    UIControl *ghBtn = [self createCardThemedButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46) fontSize:16.0];
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    self.continueButtonControl = [self createCrystalButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48) fontSize:16.0];
+    // Кнопка «Продолжить» в том же стиле
+    self.continueButtonControl = [self createCardThemedButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48) fontSize:16.0];
     [self.continueButtonControl addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:self.continueButtonControl];
 
@@ -480,14 +482,22 @@
     [self.bottomActionsLayer addSubview:neverBtn];
 }
 
-- (UIControl *)createCrystalButton:(NSString *)title frame:(CGRect)frame fontSize:(CGFloat)fontSize {
+- (UIControl *)createCardThemedButton:(NSString *)title frame:(CGRect)frame fontSize:(CGFloat)fontSize {
     UIControl *control = [[UIControl alloc] initWithFrame:frame];
-    // Чистый воздушный прозрачный контейнер (без тяжелой черной заливки)
-    control.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.02];
     control.layer.cornerRadius = 14.0;
-    control.layer.borderWidth = 0.8;
-    control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
+    control.layer.borderWidth = 0.9;
+    control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.48].CGColor;
     control.layer.allowsEdgeAntialiasing = YES;
+    control.clipsToBounds = YES;
+
+    // Встроенный тёмный блюр как на центральном блоке
+    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+    UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    glassView.frame = control.bounds;
+    glassView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    glassView.userInteractionEnabled = NO;
+    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.35];
+    [control addSubview:glassView];
 
     UILabel *label = [[UILabel alloc] initWithFrame:control.bounds];
     label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -500,8 +510,8 @@
     label.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     
     label.layer.shadowColor = [UIColor blackColor].CGColor;
-    label.layer.shadowOpacity = 0.75;
-    label.layer.shadowRadius = 2.5;
+    label.layer.shadowOpacity = 0.65;
+    label.layer.shadowRadius = 2.0;
     label.layer.shadowOffset = CGSizeMake(0, 1.0);
     label.userInteractionEnabled = NO;
     [control addSubview:label];
@@ -517,9 +527,9 @@
     [self.selectionFeedback selectionChanged];
 
     [UIView animateWithDuration:0.10 animations:^{
-        btn.transform = CGAffineTransformMakeScale(0.95, 0.95);
-        btn.alpha = 0.70;
-        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.20].CGColor;
+        btn.transform = CGAffineTransformMakeScale(0.96, 0.96);
+        btn.alpha = 0.85;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.25].CGColor;
     }];
 }
 
@@ -527,7 +537,7 @@
     [UIView animateWithDuration:0.18 delay:0.0 usingSpringWithDamping:0.65 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
         btn.transform = CGAffineTransformIdentity;
         btn.alpha = 1.0;
-        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.48].CGColor;
     } completion:nil];
 }
 
@@ -585,9 +595,9 @@
     } completion:nil];
 }
 
-#pragma mark - Dynamic Island Pulse + Toast Banner («Чисто по-братски, с тебя шаурма»)
+#pragma mark - Бесшовный Dynamic Island Morphing (Apple-style)
 
-- (void)triggerIslandPulseAndToastBanner {
+- (void)triggerSeamlessIslandMorphing {
     UIWindow *targetWindow = nil;
     if (@available(iOS 13.0, *)) {
         for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
@@ -601,100 +611,85 @@
     if (!targetWindow) targetWindow = [UIApplication sharedApplication].keyWindow;
     if (!targetWindow) return;
 
+    CGFloat screenW = targetWindow.bounds.size.width;
     CGFloat topInset = 0;
     if (@available(iOS 11.0, *)) {
         topInset = targetWindow.safeAreaInsets.top;
     }
 
-    CGFloat screenW = targetWindow.bounds.size.width;
-    CGFloat islandW = (topInset > 50) ? 126.0 : 180.0;
-    CGFloat islandH = (topInset > 50) ? 37.0 : 30.0;
-    CGFloat islandY = (topInset > 50) ? (topInset - islandH - 2.0) : 10.0;
-    CGFloat islandX = (screenW - islandW) / 2.0;
+    // Истинные аппаратные координаты острова на iPhone 14 Pro / 15 / 16
+    CGFloat initialW = 125.0;
+    CGFloat initialH = 37.0;
+    CGFloat initialY = (topInset > 50) ? 11.0 : 10.0;
+    CGFloat initialX = (screenW - initialW) / 2.0;
 
-    // 1. Контурная вспышка острова
-    UIView *pulseHost = [[UIView alloc] initWithFrame:CGRectMake(islandX, islandY, islandW, islandH)];
-    pulseHost.layer.cornerRadius = islandH / 2.0;
-    pulseHost.layer.borderWidth = 1.2;
-    pulseHost.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.95].CGColor;
-    pulseHost.layer.shadowColor = [UIColor colorWithRed:1.0 green:0.88 blue:0.65 alpha:1.0].CGColor;
-    pulseHost.layer.shadowRadius = 14.0;
-    pulseHost.layer.shadowOpacity = 0.90;
-    pulseHost.layer.shadowOffset = CGSizeZero;
-    pulseHost.userInteractionEnabled = NO;
-    pulseHost.alpha = 0.0;
-    pulseHost.transform = CGAffineTransformMakeScale(0.92, 0.92);
-    [targetWindow addSubview:pulseHost];
+    // Финальная ширина при раскрытии
+    CGFloat expandedW = MIN(screenW - 50.0, 325.0);
+    CGFloat expandedH = 42.0;
+    CGFloat expandedX = (screenW - expandedW) / 2.0;
+    CGFloat expandedY = initialY; // остров расширяется прямо из физического выреза
 
-    [self.selectionFeedback prepare];
-    [self.selectionFeedback selectionChanged];
+    // Единый контейнер острова (чистый чёрный глянец, точно закрывающий сенсоры камеры)
+    UIView *islandContainer = [[UIView alloc] initWithFrame:CGRectMake(initialX, initialY, initialW, initialH)];
+    islandContainer.backgroundColor = [UIColor blackColor];
+    islandContainer.layer.cornerRadius = initialH / 2.0;
+    islandContainer.layer.borderWidth = 0.8;
+    islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.85].CGColor;
+    islandContainer.layer.shadowColor = [UIColor colorWithRed:1.0 green:0.88 blue:0.65 alpha:0.85].CGColor;
+    islandContainer.layer.shadowRadius = 12.0;
+    islandContainer.layer.shadowOpacity = 0.80;
+    islandContainer.layer.shadowOffset = CGSizeZero;
+    islandContainer.layer.allowsEdgeAntialiasing = YES;
+    islandContainer.clipsToBounds = YES;
+    islandContainer.userInteractionEnabled = NO;
 
-    [UIView animateWithDuration:0.35 delay:0.05 usingSpringWithDamping:0.7 initialSpringVelocity:0.6 options:0 animations:^{
-        pulseHost.alpha = 1.0;
-        pulseHost.transform = CGAffineTransformMakeScale(1.08, 1.08);
-    } completion:^(BOOL finished) {
-        [UIView animateWithDuration:0.40 delay:0.1 options:UIViewAnimationOptionCurveEaseInOut animations:^{
-            pulseHost.transform = CGAffineTransformIdentity;
-            pulseHost.layer.shadowRadius = 6.0;
-        } completion:^(BOOL fin2) {
-            [UIView animateWithDuration:0.45 delay:0.15 options:UIViewAnimationOptionCurveEaseIn animations:^{
-                pulseHost.alpha = 0.0;
-            } completion:^(BOOL fin3) {
-                [pulseHost removeFromSuperview];
-            }];
-        }];
-    }];
-
-    // 2. Выкатывающаяся капсула-тост: «Чисто по-братски, с тебя шаурма»
-    CGFloat bannerW = MIN(screenW - 40.0, 340.0);
-    CGFloat bannerH = 44.0;
-    CGFloat bannerY = (topInset > 50) ? (topInset + 8.0) : 48.0;
-    CGFloat bannerX = (screenW - bannerW) / 2.0;
-
-    UIView *bannerView = [[UIView alloc] initWithFrame:CGRectMake(bannerX, bannerY - 20, bannerW, bannerH)];
-    bannerView.backgroundColor = [UIColor colorWithRed:0.08 green:0.06 blue:0.05 alpha:0.94];
-    bannerView.layer.cornerRadius = 22.0;
-    bannerView.layer.borderWidth = 0.8;
-    bannerView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.60].CGColor;
-    bannerView.layer.shadowColor = [UIColor blackColor].CGColor;
-    bannerView.layer.shadowOpacity = 0.65;
-    bannerView.layer.shadowRadius = 12.0;
-    bannerView.layer.shadowOffset = CGSizeMake(0, 6);
-    bannerView.userInteractionEnabled = NO;
-    bannerView.alpha = 0.0;
-    bannerView.transform = CGAffineTransformMakeScale(0.85, 0.85);
-
-    UILabel *bannerLabel = [[UILabel alloc] initWithFrame:bannerView.bounds];
-    bannerLabel.text = @"🤝 Чисто по-братски, с тебя шаурма";
-    bannerLabel.textAlignment = NSTextAlignmentCenter;
+    UILabel *toastLabel = [[UILabel alloc] initWithFrame:CGRectMake(12, 0, expandedW - 24, expandedH)];
+    toastLabel.text = @"🤝 Чисто по-братски, с тебя шаурма";
+    toastLabel.textAlignment = NSTextAlignmentCenter;
     
     UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:13.5];
     if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:13.5];
-    bannerLabel.font = toastFont;
-    bannerLabel.textColor = [UIColor colorWithRed:0.98 green:0.95 blue:0.88 alpha:1.0];
-    [bannerView addSubview:bannerLabel];
+    toastLabel.font = toastFont;
+    toastLabel.textColor = [UIColor colorWithRed:0.98 green:0.95 blue:0.88 alpha:1.0];
+    toastLabel.alpha = 0.0;
+    toastLabel.transform = CGAffineTransformMakeScale(0.85, 0.85);
+    [islandContainer addSubview:toastLabel];
 
-    [targetWindow addSubview:bannerView];
+    [targetWindow addSubview:islandContainer];
 
-    // Выкат капсулы через 0.25 сек
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [UIView animateWithDuration:0.55 delay:0.0 usingSpringWithDamping:0.75 initialSpringVelocity:0.6 options:0 animations:^{
-            bannerView.alpha = 1.0;
-            bannerView.frame = CGRectMake(bannerX, bannerY, bannerW, bannerH);
-            bannerView.transform = CGAffineTransformIdentity;
-        } completion:^(BOOL finished) {
-            // Висит 3 секунды и бесшовно схлопывается в остров
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [UIView animateWithDuration:0.40 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-                    bannerView.alpha = 0.0;
-                    bannerView.transform = CGAffineTransformMakeScale(0.70, 0.70);
-                    bannerView.frame = CGRectMake(bannerX, bannerY - 15, bannerW, bannerH);
-                } completion:^(BOOL fin) {
-                    [bannerView removeFromSuperview];
-                }];
-            });
-        }];
-    });
+    // Фаза 1: Расширение острова из физического контура (Morphing Expand)
+    [UIView animateWithDuration:0.45 delay:0.05 usingSpringWithDamping:0.72 initialSpringVelocity:0.7 options:0 animations:^{
+        islandContainer.frame = CGRectMake(expandedX, expandedY, expandedW, expandedH);
+        islandContainer.layer.cornerRadius = expandedH / 2.0;
+        islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.95].CGColor;
+        islandContainer.layer.shadowRadius = 16.0;
+    } completion:nil];
+
+    // Фаза 2: Проявление текста на пике раскрытия + щелчок Taptic Engine
+    [UIView animateWithDuration:0.25 delay:0.18 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        toastLabel.alpha = 1.0;
+        toastLabel.transform = CGAffineTransformIdentity;
+    } completion:^(BOOL finished) {
+        [self.selectionFeedback prepare];
+        [self.selectionFeedback selectionChanged];
+
+        // Фаза 3: Текст висит 2.8 сек, затем остров втягивается обратно в вырез (Morphing Collapse)
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [UIView animateWithDuration:0.15 animations:^{
+                toastLabel.alpha = 0.0;
+                toastLabel.transform = CGAffineTransformMakeScale(0.80, 0.80);
+            }];
+
+            [UIView animateWithDuration:0.38 delay:0.08 usingSpringWithDamping:0.85 initialSpringVelocity:0.4 options:0 animations:^{
+                islandContainer.frame = CGRectMake(initialX, initialY, initialW, initialH);
+                islandContainer.layer.cornerRadius = initialH / 2.0;
+                islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.0].CGColor;
+                islandContainer.layer.shadowOpacity = 0.0;
+            } completion:^(BOOL fin) {
+                [islandContainer removeFromSuperview];
+            }];
+        });
+    }];
 }
 
 #pragma mark - Хореография выхода (Exit Choreography)
@@ -728,7 +723,8 @@
         self.backgroundImageView.alpha = 0.0;
         self.vignetteLayer.opacity = 0.0;
     } completion:^(BOOL finished) {
-        [self triggerIslandPulseAndToastBanner];
+        // Запуск бесшовного морфинга Dynamic Island
+        [self triggerSeamlessIslandMorphing];
         [self dismissViewControllerAnimated:NO completion:completion];
     }];
 }
