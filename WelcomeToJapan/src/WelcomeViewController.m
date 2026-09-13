@@ -192,12 +192,12 @@
     self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
     [self.sceneContainer addSubview:self.headerInfoLayer];
 
-    // Стеклянная подложка
+    // Матовое темное стекло с благородной золотой окантовкой
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     glassView.frame = CGRectMake(0, 95, headerW, 120);
     glassView.layer.cornerRadius = 20.0;
-    glassView.layer.borderWidth = 0.8;
+    glassView.layer.borderWidth = 0.9;
     glassView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
     glassView.clipsToBounds = YES;
     glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.25];
@@ -208,7 +208,6 @@
 
     CGFloat logoW = 230.0;
     CGFloat logoH = 115.0;
-    // Поднимаем логотип до Y = -24, чтобы он не наползал на плашку и заголовок
     self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -24, logoW, logoH)];
     self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
     self.metalLogoView.image = cleanLogo;
@@ -220,7 +219,7 @@
 
     [self setupLogoShimmerEffect];
 
-    // Центрируем текст внутри высоты плашки (Y: 95 до 215)
+    // Текст отцентрирован внутри плашки
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 110, headerW - 16, 28)];
     title.text = cfg.headlineText;
     title.textAlignment = NSTextAlignmentCenter;
@@ -266,8 +265,8 @@
     UIImage *rawPlaques = [self imageFromBase64:kPlaquesBase64] ?: [UIImage imageNamed:@"plaques.png"];
     UIImage *singlePlaque = [self extractSinglePlaque:rawPlaques];
 
-    // Выравниваем центр дощечек строго по центру стеклянной плашки
-    CGFloat cardCenterY = (screenH * 0.38) + 95 + 60; // startY + отступ плашки + половина высоты
+    // Выравнивание строго по вертикальному центру плашки
+    CGFloat cardCenterY = (screenH * 0.38) + 95 + 60;
     CGFloat plaqueY = cardCenterY - (cfg.plaqueSize.height / 2.0) + 45;
 
     CGFloat leftX = cfg.leftPlaqueOrigin.x + 45;
@@ -357,7 +356,6 @@
 
     CGFloat actionsW = screenW - 80;
     CGFloat actionsH = 160;
-    // Кнопки зафиксированы на исходной нижней позиции
     CGFloat bottomY = screenH * 0.77;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
@@ -366,56 +364,37 @@
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    UIButton *tgBtn = [self createThemeButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46)];
+    UIButton *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46)];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
 
-    UIButton *ghBtn = [self createThemeButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46)];
+    UIButton *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46)];
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    UIButton *contBtn = [self createThemeButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48)];
+    UIButton *contBtn = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48)];
     [contBtn addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:contBtn];
 
-    // Предельно незаметная кнопка «Больше не показывать»
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeCustom];
     neverBtn.frame = CGRectMake(0, 116, actionsW, 22);
     
-    NSAttributedString *attrNever = [[NSAttributedString alloc] initWithString:cfg.neverShowText attributes:@{
-        NSForegroundColorAttributeName: [UIColor colorWithWhite:1.0 alpha:0.35],
-        NSFontAttributeName: [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular]
-    }];
-    [neverBtn setAttributedTitle:attrNever forState:UIControlStateNormal];
+    UILabel *neverLabel = [[UILabel alloc] initWithFrame:neverBtn.bounds];
+    neverLabel.text = cfg.neverShowText;
+    neverLabel.textAlignment = NSTextAlignmentCenter;
+    neverLabel.font = [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular];
+    neverLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.35];
+    neverLabel.userInteractionEnabled = NO;
+    [neverBtn addSubview:neverLabel];
+    
     [neverBtn addTarget:self action:@selector(neverShowAgain) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:neverBtn];
 }
 
-- (UIButton *)createThemeButton:(NSString *)title frame:(CGRect)frame {
+- (UIButton *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
     btn.frame = frame;
-    btn.tintColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0];
     btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.75];
-    
-    NSShadow *shadow = [[NSShadow alloc] init];
-    shadow.shadowColor = [UIColor blackColor];
-    shadow.shadowBlurRadius = 2.0;
-    shadow.shadowOffset = CGSizeMake(0, 1.0);
-    
-    NSDictionary *normalAttrs = @{
-        NSForegroundColorAttributeName: [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0],
-        NSFontAttributeName: [UIFont boldSystemFontOfSize:15.5],
-        NSShadowAttributeName: shadow
-    };
-    [btn setAttributedTitle:[[NSAttributedString alloc] initWithString:title attributes:normalAttrs] forState:UIControlStateNormal];
-    
-    NSDictionary *highlightAttrs = @{
-        NSForegroundColorAttributeName: [UIColor colorWithWhite:1.0 alpha:0.6],
-        NSFontAttributeName: [UIFont boldSystemFontOfSize:15.5],
-        NSShadowAttributeName: shadow
-    };
-    [btn setAttributedTitle:[[NSAttributedString alloc] initWithString:title attributes:highlightAttrs] forState:UIControlStateHighlighted];
-    
     btn.layer.cornerRadius = 14.0;
     btn.layer.borderWidth = 0.8;
     btn.layer.borderColor = [UIColor colorWithRed:0.88 green:0.78 blue:0.62 alpha:0.45].CGColor;
@@ -424,7 +403,22 @@
     btn.layer.shadowOpacity = 0.40;
     btn.layer.shadowRadius = 8.0;
     btn.layer.shadowOffset = CGSizeMake(0, 4);
+
+    // Вложенный UILabel — гарантирует 100% стабильный благородный айвори цвет
+    UILabel *label = [[UILabel alloc] initWithFrame:btn.bounds];
+    label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    label.text = title;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.font = [UIFont boldSystemFontOfSize:15.5];
+    label.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0];
     
+    label.layer.shadowColor = [UIColor blackColor].CGColor;
+    label.layer.shadowOpacity = 0.50;
+    label.layer.shadowRadius = 2.0;
+    label.layer.shadowOffset = CGSizeMake(0, 1.0);
+    label.userInteractionEnabled = NO;
+    [btn addSubview:label];
+
     [btn addTarget:self action:@selector(buttonTouchHaptic) forControlEvents:UIControlEventTouchDown];
     return btn;
 }
