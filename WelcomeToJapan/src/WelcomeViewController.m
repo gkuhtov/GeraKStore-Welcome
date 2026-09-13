@@ -21,6 +21,9 @@
 @property (nonatomic, strong) UIView *leftPlaqueView;
 @property (nonatomic, strong) UIView *rightPlaqueView;
 
+@property (nonatomic, strong) UIControl *continueButtonControl;
+@property (nonatomic, strong) CAGradientLayer *continueBtnShimmer;
+
 @property (nonatomic, assign) BOOL heartbeatActive;
 @property (nonatomic, assign) BOOL isDismissing;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *heavyFeedback;
@@ -213,6 +216,7 @@
     glassView.layer.cornerRadius = 20.0;
     glassView.layer.borderWidth = 0.9;
     glassView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
+    glassView.layer.allowsEdgeAntialiasing = YES;
     glassView.clipsToBounds = YES;
     glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.25];
     [self.headerInfoLayer addSubview:glassView];
@@ -229,6 +233,7 @@
     self.metalLogoView.layer.shadowOpacity = 0.70;
     self.metalLogoView.layer.shadowRadius = 18.0;
     self.metalLogoView.layer.shadowOffset = CGSizeMake(0, 10);
+    self.metalLogoView.layer.allowsEdgeAntialiasing = YES;
     [self.headerInfoLayer addSubview:self.metalLogoView];
 
     [self setupLogoShimmerEffect];
@@ -299,6 +304,7 @@
 - (UIView *)buildPlaqueViewWithImage:(UIImage *)plaqueImage text:(NSString *)text frame:(CGRect)frame isRight:(BOOL)isRight {
     UIView *container = [[UIView alloc] initWithFrame:frame];
     container.clipsToBounds = NO;
+    container.layer.allowsEdgeAntialiasing = YES;
 
     UIImageView *plaqueBg = [[UIImageView alloc] initWithFrame:container.bounds];
     plaqueBg.contentMode = UIViewContentModeScaleToFill;
@@ -307,6 +313,7 @@
     plaqueBg.layer.shadowOpacity = 0.65;
     plaqueBg.layer.shadowRadius = 14.0;
     plaqueBg.layer.shadowOffset = CGSizeMake(isRight ? -5 : 5, 9);
+    plaqueBg.layer.allowsEdgeAntialiasing = YES;
     [container addSubview:plaqueBg];
 
     CGFloat topPadding = 32.0;
@@ -360,6 +367,17 @@
     animation.duration = 0.65;
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     [self.shimmerLayer addAnimation:animation forKey:@"welcome.japan.shimmerSweep"];
+
+    // Деликатный световой блик по кнопке «Продолжить»
+    if (self.continueBtnShimmer) {
+        self.continueBtnShimmer.opacity = 1.0;
+        CABasicAnimation *btnAnim = [CABasicAnimation animationWithKeyPath:@"locations"];
+        btnAnim.fromValue = @[@0.0, @0.05, @0.15];
+        btnAnim.toValue = @[@0.85, @0.95, @1.0];
+        btnAnim.duration = 0.75;
+        btnAnim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+        [self.continueBtnShimmer addAnimation:btnAnim forKey:@"welcome.japan.btnShimmer"];
+    }
 }
 
 - (void)setupBottomActions {
@@ -377,26 +395,43 @@
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    UIControl *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46)];
+    UIControl *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
 
-    UIControl *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46)];
+    UIControl *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46) fontSize:16.0];
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    UIControl *contBtn = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48)];
-    [contBtn addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
-    [self.bottomActionsLayer addSubview:contBtn];
+    // Кнопка «Продолжить» — 50 pt высоты для уверенного Primary CTA
+    self.continueButtonControl = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 50) fontSize:16.5];
+    [self.continueButtonControl addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
+    [self.bottomActionsLayer addSubview:self.continueButtonControl];
 
+    // Световой блик для кнопки «Продолжить»
+    self.continueBtnShimmer = [CAGradientLayer layer];
+    self.continueBtnShimmer.frame = self.continueButtonControl.bounds;
+    self.continueBtnShimmer.cornerRadius = 14.0;
+    self.continueBtnShimmer.startPoint = CGPointMake(0.0, 0.5);
+    self.continueBtnShimmer.endPoint = CGPointMake(1.0, 0.5);
+    self.continueBtnShimmer.colors = @[
+        (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor,
+        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.25].CGColor,
+        (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor
+    ];
+    self.continueBtnShimmer.locations = @[@0.0, @0.1, @0.2];
+    self.continueBtnShimmer.opacity = 0.0;
+    [self.continueButtonControl.layer addSublayer:self.continueBtnShimmer];
+
+    // Предельно незаметная ссылка «Больше не показывать»
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    neverBtn.frame = CGRectMake(0, 116, actionsW, 22);
+    neverBtn.frame = CGRectMake(0, 118, actionsW, 20);
     
     UILabel *neverLabel = [[UILabel alloc] initWithFrame:neverBtn.bounds];
     neverLabel.text = cfg.neverShowText;
     neverLabel.textAlignment = NSTextAlignmentCenter;
-    neverLabel.font = [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular];
-    neverLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.35];
+    neverLabel.font = [UIFont systemFontOfSize:10.5 weight:UIFontWeightLight];
+    neverLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.18]; // практически фантомная прозрачность
     neverLabel.userInteractionEnabled = NO;
     [neverBtn addSubview:neverLabel];
     
@@ -404,12 +439,13 @@
     [self.bottomActionsLayer addSubview:neverBtn];
 }
 
-- (UIControl *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame {
+- (UIControl *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame fontSize:(CGFloat)fontSize {
     UIControl *control = [[UIControl alloc] initWithFrame:frame];
     control.backgroundColor = [UIColor colorWithRed:0.14 green:0.10 blue:0.08 alpha:0.88];
     control.layer.cornerRadius = 14.0;
     control.layer.borderWidth = 0.9;
     control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
+    control.layer.allowsEdgeAntialiasing = YES;
     
     control.layer.shadowColor = [UIColor blackColor].CGColor;
     control.layer.shadowOpacity = 0.45;
@@ -421,8 +457,8 @@
     label.text = title;
     label.textAlignment = NSTextAlignmentCenter;
     
-    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Bold" size:16.0];
-    if (!storeFont) storeFont = [UIFont boldSystemFontOfSize:16.0];
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Bold" size:fontSize];
+    if (!storeFont) storeFont = [UIFont boldSystemFontOfSize:fontSize];
     label.font = storeFont;
     label.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     
@@ -601,6 +637,9 @@
     self.heartbeatActive = NO;
     [self.metalLogoView.layer removeAnimationForKey:@"welcome.japan.singleBeat"];
     [self.shimmerLayer removeAnimationForKey:@"welcome.japan.shimmerSweep"];
+    if (self.continueBtnShimmer) {
+        [self.continueBtnShimmer removeAnimationForKey:@"welcome.japan.btnShimmer"];
+    }
 }
 
 - (void)addParallaxEffectToView:(UIView *)target depth:(CGFloat)depth {
