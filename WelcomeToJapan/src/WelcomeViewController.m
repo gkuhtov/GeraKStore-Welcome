@@ -11,6 +11,7 @@
 @property (nonatomic, strong) UIImageView *backgroundImageView;
 @property (nonatomic, strong) CAGradientLayer *vignetteLayer;
 @property (nonatomic, strong) CAEmitterLayer *particleEmitter;
+@property (nonatomic, strong) CAEmitterLayer *touchEmitter;
 
 @property (nonatomic, strong) UIView *plaquesLayer;
 @property (nonatomic, strong) UIView *headerInfoLayer;
@@ -22,7 +23,6 @@
 @property (nonatomic, strong) UIView *rightPlaqueView;
 
 @property (nonatomic, strong) UIControl *continueButtonControl;
-@property (nonatomic, strong) CAGradientLayer *continueBtnShimmer;
 
 @property (nonatomic, assign) BOOL heartbeatActive;
 @property (nonatomic, assign) BOOL isDismissing;
@@ -85,6 +85,17 @@
     return img;
 }
 
+- (UIImage *)generateSparkleTouchImage {
+    CGSize size = CGSizeMake(10, 10);
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGContextSetFillColorWithColor(ctx, [UIColor colorWithRed:1.0 green:0.94 blue:0.75 alpha:1.0].CGColor);
+    CGContextFillEllipseInRect(ctx, CGRectMake(1, 1, 8, 8));
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
 #pragma mark - Жизненный цикл
 
 - (void)viewDidLoad {
@@ -111,6 +122,7 @@
 
     [self setupBackground];
     [self setupVignetteAndParticles];
+    [self setupTouchEmitter];
     [self setupHeaderInfo];
     [self setupPlaques];
     [self setupBottomActions];
@@ -197,6 +209,63 @@
     self.particleEmitter.emitterCells = @[sparkle];
     [self.sceneContainer.layer insertSublayer:self.particleEmitter above:self.vignetteLayer];
 }
+
+#pragma mark - Touch Trail (Шлейф золотых искр за пальцем)
+
+- (void)setupTouchEmitter {
+    self.touchEmitter = [CAEmitterLayer layer];
+    self.touchEmitter.emitterShape = kCAEmitterLayerPoint;
+    self.touchEmitter.emitterMode = kCAEmitterLayerOutline;
+    self.touchEmitter.renderMode = kCAEmitterLayerAdditive;
+
+    CAEmitterCell *spark = [CAEmitterCell emitterCell];
+    spark.name = @"touchSpark";
+    spark.birthRate = 0;
+    spark.lifetime = 0.65;
+    spark.velocity = 45.0;
+    spark.velocityRange = 25.0;
+    spark.emissionRange = (CGFloat)(2.0 * M_PI);
+    spark.yAcceleration = 80.0;
+    spark.scale = 0.35;
+    spark.scaleRange = 0.15;
+    spark.scaleSpeed = -0.3;
+    spark.alphaSpeed = -1.2;
+    spark.contents = (id)[self generateSparkleTouchImage].CGImage;
+
+    self.touchEmitter.emitterCells = @[spark];
+    [self.sceneContainer.layer addSublayer:self.touchEmitter];
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super touchesBegan:touches withEvent:event];
+    UITouch *touch = [touches anyObject];
+    CGPoint loc = [touch locationInView:self.sceneContainer];
+    self.touchEmitter.emitterPosition = loc;
+    [self.touchEmitter setValue:@(45) forKeyPath:@"emitterCells.touchSpark.birthRate"];
+}
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super touchesMoved:touches withEvent:event];
+    UITouch *touch = [touches anyObject];
+    CGPoint loc = [touch locationInView:self.sceneContainer];
+    
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    self.touchEmitter.emitterPosition = loc;
+    [CATransaction commit];
+}
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super touchesEnded:touches withEvent:event];
+    [self.touchEmitter setValue:@(0) forKeyPath:@"emitterCells.touchSpark.birthRate"];
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [super touchesCancelled:touches withEvent:event];
+    [self.touchEmitter setValue:@(0) forKeyPath:@"emitterCells.touchSpark.birthRate"];
+}
+
+#pragma mark - Разметка UI
 
 - (void)setupHeaderInfo {
     WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
@@ -367,17 +436,6 @@
     animation.duration = 0.65;
     animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     [self.shimmerLayer addAnimation:animation forKey:@"welcome.japan.shimmerSweep"];
-
-    // Деликатный световой блик по кнопке «Продолжить»
-    if (self.continueBtnShimmer) {
-        self.continueBtnShimmer.opacity = 1.0;
-        CABasicAnimation *btnAnim = [CABasicAnimation animationWithKeyPath:@"locations"];
-        btnAnim.fromValue = @[@0.0, @0.05, @0.15];
-        btnAnim.toValue = @[@0.85, @0.95, @1.0];
-        btnAnim.duration = 0.75;
-        btnAnim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-        [self.continueBtnShimmer addAnimation:btnAnim forKey:@"welcome.japan.btnShimmer"];
-    }
 }
 
 - (void)setupBottomActions {
@@ -395,43 +453,26 @@
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    UIControl *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
+    UIControl *tgBtn = [self createCrystalButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
 
-    UIControl *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46) fontSize:16.0];
+    UIControl *ghBtn = [self createCrystalButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46) fontSize:16.0];
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    // Кнопка «Продолжить» — 50 pt высоты для уверенного Primary CTA
-    self.continueButtonControl = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 50) fontSize:16.5];
+    self.continueButtonControl = [self createCrystalButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48) fontSize:16.0];
     [self.continueButtonControl addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:self.continueButtonControl];
 
-    // Световой блик для кнопки «Продолжить»
-    self.continueBtnShimmer = [CAGradientLayer layer];
-    self.continueBtnShimmer.frame = self.continueButtonControl.bounds;
-    self.continueBtnShimmer.cornerRadius = 14.0;
-    self.continueBtnShimmer.startPoint = CGPointMake(0.0, 0.5);
-    self.continueBtnShimmer.endPoint = CGPointMake(1.0, 0.5);
-    self.continueBtnShimmer.colors = @[
-        (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor,
-        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.25].CGColor,
-        (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor
-    ];
-    self.continueBtnShimmer.locations = @[@0.0, @0.1, @0.2];
-    self.continueBtnShimmer.opacity = 0.0;
-    [self.continueButtonControl.layer addSublayer:self.continueBtnShimmer];
-
-    // Предельно незаметная ссылка «Больше не показывать»
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    neverBtn.frame = CGRectMake(0, 118, actionsW, 20);
+    neverBtn.frame = CGRectMake(0, 116, actionsW, 20);
     
     UILabel *neverLabel = [[UILabel alloc] initWithFrame:neverBtn.bounds];
     neverLabel.text = cfg.neverShowText;
     neverLabel.textAlignment = NSTextAlignmentCenter;
     neverLabel.font = [UIFont systemFontOfSize:10.5 weight:UIFontWeightLight];
-    neverLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.18]; // практически фантомная прозрачность
+    neverLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.18];
     neverLabel.userInteractionEnabled = NO;
     [neverBtn addSubview:neverLabel];
     
@@ -439,18 +480,14 @@
     [self.bottomActionsLayer addSubview:neverBtn];
 }
 
-- (UIControl *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame fontSize:(CGFloat)fontSize {
+- (UIControl *)createCrystalButton:(NSString *)title frame:(CGRect)frame fontSize:(CGFloat)fontSize {
     UIControl *control = [[UIControl alloc] initWithFrame:frame];
-    control.backgroundColor = [UIColor colorWithRed:0.14 green:0.10 blue:0.08 alpha:0.88];
+    // Чистый воздушный прозрачный контейнер (без тяжелой черной заливки)
+    control.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.02];
     control.layer.cornerRadius = 14.0;
-    control.layer.borderWidth = 0.9;
-    control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
+    control.layer.borderWidth = 0.8;
+    control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
     control.layer.allowsEdgeAntialiasing = YES;
-    
-    control.layer.shadowColor = [UIColor blackColor].CGColor;
-    control.layer.shadowOpacity = 0.45;
-    control.layer.shadowRadius = 8.0;
-    control.layer.shadowOffset = CGSizeMake(0, 4);
 
     UILabel *label = [[UILabel alloc] initWithFrame:control.bounds];
     label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -463,8 +500,8 @@
     label.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     
     label.layer.shadowColor = [UIColor blackColor].CGColor;
-    label.layer.shadowOpacity = 0.60;
-    label.layer.shadowRadius = 2.0;
+    label.layer.shadowOpacity = 0.75;
+    label.layer.shadowRadius = 2.5;
     label.layer.shadowOffset = CGSizeMake(0, 1.0);
     label.userInteractionEnabled = NO;
     [control addSubview:label];
@@ -481,8 +518,8 @@
 
     [UIView animateWithDuration:0.10 animations:^{
         btn.transform = CGAffineTransformMakeScale(0.95, 0.95);
-        btn.alpha = 0.88;
-        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.25].CGColor;
+        btn.alpha = 0.70;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.20].CGColor;
     }];
 }
 
@@ -490,7 +527,7 @@
     [UIView animateWithDuration:0.18 delay:0.0 usingSpringWithDamping:0.65 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
         btn.transform = CGAffineTransformIdentity;
         btn.alpha = 1.0;
-        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
     } completion:nil];
 }
 
@@ -548,6 +585,118 @@
     } completion:nil];
 }
 
+#pragma mark - Dynamic Island Pulse + Toast Banner («Чисто по-братски, с тебя шаурма»)
+
+- (void)triggerIslandPulseAndToastBanner {
+    UIWindow *targetWindow = nil;
+    if (@available(iOS 13.0, *)) {
+        for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]] && scene.activationState == UISceneActivationStateForegroundActive) {
+                for (UIWindow *win in scene.windows) {
+                    if (win.isKeyWindow) { targetWindow = win; break; }
+                }
+            }
+        }
+    }
+    if (!targetWindow) targetWindow = [UIApplication sharedApplication].keyWindow;
+    if (!targetWindow) return;
+
+    CGFloat topInset = 0;
+    if (@available(iOS 11.0, *)) {
+        topInset = targetWindow.safeAreaInsets.top;
+    }
+
+    CGFloat screenW = targetWindow.bounds.size.width;
+    CGFloat islandW = (topInset > 50) ? 126.0 : 180.0;
+    CGFloat islandH = (topInset > 50) ? 37.0 : 30.0;
+    CGFloat islandY = (topInset > 50) ? (topInset - islandH - 2.0) : 10.0;
+    CGFloat islandX = (screenW - islandW) / 2.0;
+
+    // 1. Контурная вспышка острова
+    UIView *pulseHost = [[UIView alloc] initWithFrame:CGRectMake(islandX, islandY, islandW, islandH)];
+    pulseHost.layer.cornerRadius = islandH / 2.0;
+    pulseHost.layer.borderWidth = 1.2;
+    pulseHost.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.95].CGColor;
+    pulseHost.layer.shadowColor = [UIColor colorWithRed:1.0 green:0.88 blue:0.65 alpha:1.0].CGColor;
+    pulseHost.layer.shadowRadius = 14.0;
+    pulseHost.layer.shadowOpacity = 0.90;
+    pulseHost.layer.shadowOffset = CGSizeZero;
+    pulseHost.userInteractionEnabled = NO;
+    pulseHost.alpha = 0.0;
+    pulseHost.transform = CGAffineTransformMakeScale(0.92, 0.92);
+    [targetWindow addSubview:pulseHost];
+
+    [self.selectionFeedback prepare];
+    [self.selectionFeedback selectionChanged];
+
+    [UIView animateWithDuration:0.35 delay:0.05 usingSpringWithDamping:0.7 initialSpringVelocity:0.6 options:0 animations:^{
+        pulseHost.alpha = 1.0;
+        pulseHost.transform = CGAffineTransformMakeScale(1.08, 1.08);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.40 delay:0.1 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+            pulseHost.transform = CGAffineTransformIdentity;
+            pulseHost.layer.shadowRadius = 6.0;
+        } completion:^(BOOL fin2) {
+            [UIView animateWithDuration:0.45 delay:0.15 options:UIViewAnimationOptionCurveEaseIn animations:^{
+                pulseHost.alpha = 0.0;
+            } completion:^(BOOL fin3) {
+                [pulseHost removeFromSuperview];
+            }];
+        }];
+    }];
+
+    // 2. Выкатывающаяся капсула-тост: «Чисто по-братски, с тебя шаурма»
+    CGFloat bannerW = MIN(screenW - 40.0, 340.0);
+    CGFloat bannerH = 44.0;
+    CGFloat bannerY = (topInset > 50) ? (topInset + 8.0) : 48.0;
+    CGFloat bannerX = (screenW - bannerW) / 2.0;
+
+    UIView *bannerView = [[UIView alloc] initWithFrame:CGRectMake(bannerX, bannerY - 20, bannerW, bannerH)];
+    bannerView.backgroundColor = [UIColor colorWithRed:0.08 green:0.06 blue:0.05 alpha:0.94];
+    bannerView.layer.cornerRadius = 22.0;
+    bannerView.layer.borderWidth = 0.8;
+    bannerView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.60].CGColor;
+    bannerView.layer.shadowColor = [UIColor blackColor].CGColor;
+    bannerView.layer.shadowOpacity = 0.65;
+    bannerView.layer.shadowRadius = 12.0;
+    bannerView.layer.shadowOffset = CGSizeMake(0, 6);
+    bannerView.userInteractionEnabled = NO;
+    bannerView.alpha = 0.0;
+    bannerView.transform = CGAffineTransformMakeScale(0.85, 0.85);
+
+    UILabel *bannerLabel = [[UILabel alloc] initWithFrame:bannerView.bounds];
+    bannerLabel.text = @"🤝 Чисто по-братски, с тебя шаурма";
+    bannerLabel.textAlignment = NSTextAlignmentCenter;
+    
+    UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:13.5];
+    if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:13.5];
+    bannerLabel.font = toastFont;
+    bannerLabel.textColor = [UIColor colorWithRed:0.98 green:0.95 blue:0.88 alpha:1.0];
+    [bannerView addSubview:bannerLabel];
+
+    [targetWindow addSubview:bannerView];
+
+    // Выкат капсулы через 0.25 сек
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [UIView animateWithDuration:0.55 delay:0.0 usingSpringWithDamping:0.75 initialSpringVelocity:0.6 options:0 animations:^{
+            bannerView.alpha = 1.0;
+            bannerView.frame = CGRectMake(bannerX, bannerY, bannerW, bannerH);
+            bannerView.transform = CGAffineTransformIdentity;
+        } completion:^(BOOL finished) {
+            // Висит 3 секунды и бесшовно схлопывается в остров
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [UIView animateWithDuration:0.40 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+                    bannerView.alpha = 0.0;
+                    bannerView.transform = CGAffineTransformMakeScale(0.70, 0.70);
+                    bannerView.frame = CGRectMake(bannerX, bannerY - 15, bannerW, bannerH);
+                } completion:^(BOOL fin) {
+                    [bannerView removeFromSuperview];
+                }];
+            });
+        }];
+    });
+}
+
 #pragma mark - Хореография выхода (Exit Choreography)
 
 - (void)animateDismissalWithCompletion:(void(^)(void))completion {
@@ -579,6 +728,7 @@
         self.backgroundImageView.alpha = 0.0;
         self.vignetteLayer.opacity = 0.0;
     } completion:^(BOOL finished) {
+        [self triggerIslandPulseAndToastBanner];
         [self dismissViewControllerAnimated:NO completion:completion];
     }];
 }
@@ -637,9 +787,6 @@
     self.heartbeatActive = NO;
     [self.metalLogoView.layer removeAnimationForKey:@"welcome.japan.singleBeat"];
     [self.shimmerLayer removeAnimationForKey:@"welcome.japan.shimmerSweep"];
-    if (self.continueBtnShimmer) {
-        [self.continueBtnShimmer removeAnimationForKey:@"welcome.japan.btnShimmer"];
-    }
 }
 
 - (void)addParallaxEffectToView:(UIView *)target depth:(CGFloat)depth {
