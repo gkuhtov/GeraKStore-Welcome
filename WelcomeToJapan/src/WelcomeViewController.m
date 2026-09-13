@@ -148,7 +148,7 @@
     self.vignetteLayer.colors = @[
         (id)[UIColor clearColor].CGColor,
         (id)[UIColor colorWithWhite:0.0 alpha:0.30].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.72].CGColor
+        (id)[UIColor colorWithWhite:0.0 alpha:0.75].CGColor
     ];
     self.vignetteLayer.locations = @[@0.0, @0.62, @1.0];
     self.vignetteLayer.startPoint = CGPointMake(0.5, 0.5);
@@ -246,7 +246,6 @@
     CGFloat screenW = self.view.bounds.size.width;
     CGFloat screenH = self.view.bounds.size.height;
 
-    // Ширина подобрана с запасом для боковых плашек
     CGFloat headerW = screenW - 160;
     CGFloat headerH = 240;
     CGFloat startY = screenH * 0.38;
@@ -254,7 +253,6 @@
     self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
     [self.sceneContainer addSubview:self.headerInfoLayer];
 
-    // Матовое стекло с тонкой золотой фаской (0.8 pt)
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     glassView.frame = CGRectMake(0, 95, headerW, 120);
@@ -270,8 +268,7 @@
 
     CGFloat logoW = 230.0;
     CGFloat logoH = 115.0;
-    // Подняли логотип выше (Y = -16) над верхней кромкой стекла
-    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -16, logoW, logoH)];
+    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, 5, logoW, logoH)];
     self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
     self.metalLogoView.image = cleanLogo;
     self.metalLogoView.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -290,7 +287,7 @@
     title.font = serifFont;
     title.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.93 alpha:1.0];
     title.layer.shadowColor = [UIColor blackColor].CGColor;
-    title.layer.shadowOpacity = 0.55;
+    title.layer.shadowOpacity = 0.60;
     title.layer.shadowRadius = 3.0;
     title.layer.shadowOffset = CGSizeMake(0, 1.5);
     [self.headerInfoLayer addSubview:title];
@@ -299,7 +296,7 @@
     subLine1.text = cfg.sublineText;
     subLine1.textAlignment = NSTextAlignmentCenter;
     subLine1.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightMedium];
-    subLine1.textColor = [UIColor colorWithRed:0.88 green:0.83 blue:0.75 alpha:0.88];
+    subLine1.textColor = [UIColor colorWithRed:0.88 green:0.83 blue:0.75 alpha:0.90];
     [self.headerInfoLayer addSubview:subLine1];
 
     UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 169, headerW - 16, 24)];
@@ -310,7 +307,7 @@
     subLine2.font = storeFont;
     subLine2.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
-    subLine2.layer.shadowOpacity = 0.45;
+    subLine2.layer.shadowOpacity = 0.50;
     subLine2.layer.shadowRadius = 2.0;
     subLine2.layer.shadowOffset = CGSizeMake(0, 1.0);
     [self.headerInfoLayer addSubview:subLine2];
@@ -355,7 +352,8 @@
 
     CGFloat actionsW = screenW - 80;
     CGFloat actionsH = 160;
-    CGFloat bottomY = screenH * 0.73;
+    // Оставляем исходное нижнее положение
+    CGFloat bottomY = screenH * 0.77;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
     [self.sceneContainer addSubview:self.bottomActionsLayer];
@@ -375,11 +373,14 @@
     [contBtn addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:contBtn];
 
-    UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeCustom];
     neverBtn.frame = CGRectMake(0, 114, actionsW, 26);
-    [neverBtn setTitle:cfg.neverShowText forState:UIControlStateNormal];
-    [neverBtn setTitleColor:[UIColor colorWithRed:0.92 green:0.88 blue:0.82 alpha:0.85] forState:UIControlStateNormal];
-    neverBtn.titleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+    
+    NSAttributedString *attrNever = [[NSAttributedString alloc] initWithString:cfg.neverShowText attributes:@{
+        NSForegroundColorAttributeName: [UIColor colorWithRed:0.92 green:0.88 blue:0.82 alpha:0.85],
+        NSFontAttributeName: [UIFont systemFontOfSize:13 weight:UIFontWeightMedium]
+    }];
+    [neverBtn setAttributedTitle:attrNever forState:UIControlStateNormal];
     [neverBtn addTarget:self action:@selector(neverShowAgain) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:neverBtn];
 }
@@ -387,20 +388,29 @@
 - (UIButton *)createThemeButton:(NSString *)title frame:(CGRect)frame {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
     btn.frame = frame;
+    btn.tintColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0];
     btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.75];
     
-    // Светлый айвори-текст с тенью
-    [btn setTitle:title forState:UIControlStateNormal];
-    [btn setTitleColor:[UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0] forState:UIControlStateNormal];
-    [btn setTitleColor:[UIColor colorWithWhite:1.0 alpha:0.6] forState:UIControlStateHighlighted];
-    btn.titleLabel.font = [UIFont boldSystemFontOfSize:15.5];
-    btn.titleLabel.layer.shadowColor = [UIColor blackColor].CGColor;
-    btn.titleLabel.layer.shadowOpacity = 0.50;
-    btn.titleLabel.layer.shadowRadius = 2.0;
-    btn.titleLabel.layer.shadowOffset = CGSizeMake(0, 1.0);
-    btn.layer.cornerRadius = 14.0;
+    NSShadow *shadow = [[NSShadow alloc] init];
+    shadow.shadowColor = [UIColor blackColor];
+    shadow.shadowBlurRadius = 2.0;
+    shadow.shadowOffset = CGSizeMake(0, 1.0);
     
-    // Золотой кант
+    NSDictionary *normalAttrs = @{
+        NSForegroundColorAttributeName: [UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0],
+        NSFontAttributeName: [UIFont boldSystemFontOfSize:15.5],
+        NSShadowAttributeName: shadow
+    };
+    [btn setAttributedTitle:[[NSAttributedString alloc] initWithString:title attributes:normalAttrs] forState:UIControlStateNormal];
+    
+    NSDictionary *highlightAttrs = @{
+        NSForegroundColorAttributeName: [UIColor colorWithWhite:1.0 alpha:0.6],
+        NSFontAttributeName: [UIFont boldSystemFontOfSize:15.5],
+        NSShadowAttributeName: shadow
+    };
+    [btn setAttributedTitle:[[NSAttributedString alloc] initWithString:title attributes:highlightAttrs] forState:UIControlStateHighlighted];
+    
+    btn.layer.cornerRadius = 14.0;
     btn.layer.borderWidth = 0.8;
     btn.layer.borderColor = [UIColor colorWithRed:0.88 green:0.78 blue:0.62 alpha:0.45].CGColor;
     
