@@ -90,13 +90,11 @@
     self.modalInPresentation = YES;
     self.modalPresentationCapturesStatusBarAppearance = YES;
 
-    // 1. Непроницаемая глухая подложка (защита от белых экранов приложений)
     self.solidBackdropView = [[UIView alloc] initWithFrame:self.view.bounds];
     self.solidBackdropView.backgroundColor = [UIColor blackColor];
     self.solidBackdropView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.solidBackdropView];
 
-    // Тактильные движки
     self.heavyFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
     self.lightFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
     self.selectionFeedback = [[UISelectionFeedbackGenerator alloc] init];
@@ -104,7 +102,6 @@
     [self.lightFeedback prepare];
     [self.selectionFeedback prepare];
 
-    // Контейнер сцены
     self.sceneContainer = [[UIView alloc] initWithFrame:CGRectInset(self.view.bounds, -45, -45)];
     self.sceneContainer.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.sceneContainer];
@@ -161,7 +158,6 @@
 }
 
 - (void)setupVignetteAndParticles {
-    // Виньетка кладется на фон и не глушит кнопки
     self.vignetteLayer = [CAGradientLayer layer];
     self.vignetteLayer.type = kCAGradientLayerRadial;
     self.vignetteLayer.colors = @[
@@ -302,6 +298,7 @@
 
 - (UIView *)buildPlaqueViewWithImage:(UIImage *)plaqueImage text:(NSString *)text frame:(CGRect)frame isRight:(BOOL)isRight {
     UIView *container = [[UIView alloc] initWithFrame:frame];
+    container.clipsToBounds = NO;
 
     UIImageView *plaqueBg = [[UIImageView alloc] initWithFrame:container.bounds];
     plaqueBg.contentMode = UIViewContentModeScaleToFill;
@@ -311,20 +308,6 @@
     plaqueBg.layer.shadowRadius = 14.0;
     plaqueBg.layer.shadowOffset = CGSizeMake(isRight ? -5 : 5, 9);
     [container addSubview:plaqueBg];
-
-    // 2. Направленная светотень: свет падает от центрального стеклянного блока
-    CAGradientLayer *lighting = [CAGradientLayer layer];
-    lighting.frame = container.bounds;
-    lighting.cornerRadius = 6.0;
-    lighting.startPoint = CGPointMake(isRight ? 0.0 : 1.0, 0.5); // свет падает от внутренней грани
-    lighting.endPoint   = CGPointMake(isRight ? 1.0 : 0.0, 0.5); // тень на внешней грани
-    lighting.colors = @[
-        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.18].CGColor, // теплый отблеск
-        (id)[UIColor clearColor].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.32].CGColor                      // мягкая тень сбоку
-    ];
-    lighting.locations = @[@0.0, @0.45, @1.0];
-    [container.layer addSublayer:lighting];
 
     CGFloat topPadding = 32.0;
     CGFloat bottomPadding = 30.0;
@@ -450,7 +433,6 @@
     label.userInteractionEnabled = NO;
     [control addSubview:label];
 
-    // 3. Тактильное продавливание с аппаратным щелчком Selection
     [control addTarget:self action:@selector(buttonTouchDownAnim:) forControlEvents:UIControlEventTouchDown];
     [control addTarget:self action:@selector(buttonTouchUpAnim:) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
 
@@ -530,7 +512,7 @@
     } completion:nil];
 }
 
-#pragma mark - Плавная кинематографичная хореография выхода (Exit Choreography)
+#pragma mark - Хореография выхода (Exit Choreography)
 
 - (void)animateDismissalWithCompletion:(void(^)(void))completion {
     if (self.isDismissing) return;
@@ -538,7 +520,6 @@
 
     [self stopHeartbeatCycle];
 
-    // Мягкий финальный отклик Taptic Engine
     [self.lightFeedback prepare];
     if (@available(iOS 13.0, *)) {
         [self.lightFeedback impactOccurredWithIntensity:0.65];
@@ -547,22 +528,18 @@
     }
 
     [UIView animateWithDuration:0.28 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-        // Дощечки плавно разъезжаются в стороны и тают
         self.leftPlaqueView.transform = CGAffineTransformMakeTranslation(-40, -15);
         self.leftPlaqueView.alpha = 0.0;
 
         self.rightPlaqueView.transform = CGAffineTransformMakeTranslation(40, -15);
         self.rightPlaqueView.alpha = 0.0;
 
-        // Карточка деликатно уменьшается
         self.headerInfoLayer.transform = CGAffineTransformMakeScale(0.92, 0.92);
         self.headerInfoLayer.alpha = 0.0;
 
-        // Кнопки опускаются
         self.bottomActionsLayer.transform = CGAffineTransformMakeTranslation(0, 30);
         self.bottomActionsLayer.alpha = 0.0;
 
-        // Фон гаснет в черную подложку
         self.backgroundImageView.alpha = 0.0;
         self.vignetteLayer.opacity = 0.0;
     } completion:^(BOOL finished) {
