@@ -86,7 +86,6 @@
     self.view.backgroundColor = [UIColor blackColor];
     self.modalInPresentation = YES;
 
-    // Усиленные генераторы тактильного отклика: Heavy (100%) + Medium (85%)
     self.heavyFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
     self.lightFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
     [self.heavyFeedback prepare];
@@ -103,19 +102,15 @@
     [self setupBottomActions];
     [self applyMultiDepthParallax];
 
-    // Подготавливаем слои для каскадной пружинной анимации входа
     [self prepareInitialEntryStates];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
 
-    // 1. Запуск кинематографического Ken Burns зума фона
     [self startKenBurnsEffect];
 
-    // 2. Каскадная пружинная хореография появления
     [self executeEntranceChoreographyWithCompletion:^{
-        // 3. Запуск кардио-движка после появления основных элементов
         if ([WelcomeConfig sharedConfig].pulseEnabled) {
             [self startHeartbeatCycle];
         }
@@ -148,35 +143,33 @@
 }
 
 - (void)setupVignetteAndParticles {
-    // Мягкое радиальное кинематографическое затемнение (Виньетка)
     self.vignetteLayer = [CAGradientLayer layer];
     self.vignetteLayer.type = kCAGradientLayerRadial;
     self.vignetteLayer.colors = @[
         (id)[UIColor clearColor].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.40].CGColor,
+        (id)[UIColor colorWithWhite:0.0 alpha:0.35].CGColor,
         (id)[UIColor colorWithWhite:0.0 alpha:0.75].CGColor
     ];
-    self.vignetteLayer.locations = @[@0.0, @0.65, @1.0];
+    self.vignetteLayer.locations = @[@0.0, @0.60, @1.0];
     self.vignetteLayer.startPoint = CGPointMake(0.5, 0.5);
     self.vignetteLayer.endPoint = CGPointMake(1.0, 1.0);
     self.vignetteLayer.frame = self.view.bounds;
     [self.view.layer insertSublayer:self.vignetteLayer above:self.sceneContainer.layer];
 
-    // Атмосферные золотистые парящие микрочастицы
     self.particleEmitter = [CAEmitterLayer layer];
     self.particleEmitter.emitterPosition = CGPointMake(self.view.bounds.size.width / 2.0, -20);
     self.particleEmitter.emitterSize = CGSizeMake(self.view.bounds.size.width * 1.2, 10);
     self.particleEmitter.emitterShape = kCAEmitterLayerLine;
 
     CAEmitterCell *sparkle = [CAEmitterCell emitterCell];
-    sparkle.birthRate = 7.0;
+    sparkle.birthRate = 6.0;
     sparkle.lifetime = 14.0;
     sparkle.velocity = 22.0;
     sparkle.velocityRange = 10.0;
-    sparkle.emissionLongitude = (CGFloat)M_PI; // движение вниз
+    sparkle.emissionLongitude = (CGFloat)M_PI;
     sparkle.emissionRange = (CGFloat)(M_PI / 4.0);
-    sparkle.scale = 0.45;
-    sparkle.scaleRange = 0.25;
+    sparkle.scale = 0.40;
+    sparkle.scaleRange = 0.20;
     sparkle.alphaRange = 0.5;
     sparkle.alphaSpeed = -0.06;
     sparkle.spin = 0.4;
@@ -253,64 +246,76 @@
     CGFloat screenW = self.view.bounds.size.width;
     CGFloat screenH = self.view.bounds.size.height;
 
-    CGFloat headerW = screenW - 140;
+    // Сделали чуть компактнее по ширине (screenW - 160), чтобы был воздух до боковых плашек
+    CGFloat headerW = screenW - 160;
     CGFloat headerH = 240;
-    CGFloat startY = screenH * 0.37;
+    CGFloat startY = screenH * 0.38;
 
     self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
     [self.sceneContainer addSubview:self.headerInfoLayer];
 
-    // Премиальная стеклянная подложка (Mica Frosted Glass с подсветкой кромки)
+    // Легкое стекло с мягкой подложкой и ювелирной золотой каймой
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    glassView.frame = CGRectMake(0, 105, headerW, 115);
-    glassView.layer.cornerRadius = 18.0;
+    glassView.frame = CGRectMake(0, 95, headerW, 120);
+    glassView.layer.cornerRadius = 20.0;
     glassView.layer.borderWidth = 0.6;
-    glassView.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.18].CGColor;
+    glassView.layer.borderColor = [UIColor colorWithRed:0.88 green:0.78 blue:0.60 alpha:0.35].CGColor;
     glassView.clipsToBounds = YES;
-    glassView.alpha = 0.88;
+    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.45];
     [self.headerInfoLayer addSubview:glassView];
 
     UIImage *rawLogo = [self imageFromBase64:kStoreLogoBase64] ?: [UIImage imageNamed:@"store_logo.png"];
     UIImage *cleanLogo = [self removeBlackBackground:rawLogo];
 
-    CGFloat logoW = 250.0;
-    CGFloat logoH = 125.0;
-    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -14, logoW, logoH)];
+    CGFloat logoW = 230.0;
+    CGFloat logoH = 115.0;
+    // Сместили логотип ниже (-5 pt вместо -14 pt), чтобы он органично садился на плашку
+    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -5, logoW, logoH)];
     self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
     self.metalLogoView.image = cleanLogo;
     self.metalLogoView.layer.shadowColor = [UIColor blackColor].CGColor;
-    self.metalLogoView.layer.shadowOpacity = 0.60;
-    self.metalLogoView.layer.shadowRadius = 20.0;
-    self.metalLogoView.layer.shadowOffset = CGSizeMake(0, 12);
+    self.metalLogoView.layer.shadowOpacity = 0.70;
+    self.metalLogoView.layer.shadowRadius = 18.0;
+    self.metalLogoView.layer.shadowOffset = CGSizeMake(0, 10);
     [self.headerInfoLayer addSubview:self.metalLogoView];
 
-    // Накладываем световой блик (Specular Shimmer) поверх логотипа
     [self setupLogoShimmerEffect];
 
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 122, headerW, 32)];
+    // Контрастный заголовок цвета теплого айвори
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 112, headerW - 16, 30)];
     title.text = cfg.headlineText;
     title.textAlignment = NSTextAlignmentCenter;
-    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:24];
-    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:23];
+    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:22.5];
+    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:22];
     title.font = serifFont;
-    title.textColor = [UIColor colorWithRed:0.16 green:0.10 blue:0.06 alpha:1.0];
+    title.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.93 alpha:1.0];
+    title.layer.shadowColor = [UIColor blackColor].CGColor;
+    title.layer.shadowOpacity = 0.50;
+    title.layer.shadowRadius = 3.0;
+    title.layer.shadowOffset = CGSizeMake(0, 1.5);
     [self.headerInfoLayer addSubview:title];
 
-    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(0, 158, headerW, 20)];
+    // Мягкий золотистый подзаголовок
+    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(8, 146, headerW - 16, 18)];
     subLine1.text = cfg.sublineText;
     subLine1.textAlignment = NSTextAlignmentCenter;
     subLine1.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightMedium];
-    subLine1.textColor = [UIColor colorWithRed:0.22 green:0.13 blue:0.08 alpha:0.90];
+    subLine1.textColor = [UIColor colorWithRed:0.86 green:0.80 blue:0.72 alpha:0.85];
     [self.headerInfoLayer addSubview:subLine1];
 
-    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(0, 178, headerW, 24)];
+    // Яркая подпись источника (слоновая кость с акцентом)
+    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 168, headerW - 16, 24)];
     subLine2.text = cfg.storeSubtitleText;
     subLine2.textAlignment = NSTextAlignmentCenter;
     UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:15.5];
     if (!storeFont) storeFont = [UIFont systemFontOfSize:15.5 weight:UIFontWeightSemibold];
     subLine2.font = storeFont;
-    subLine2.textColor = [UIColor colorWithRed:0.14 green:0.08 blue:0.04 alpha:1.0];
+    subLine2.textColor = [UIColor colorWithRed:0.94 green:0.85 blue:0.68 alpha:1.0];
+    subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
+    subLine2.layer.shadowOpacity = 0.40;
+    subLine2.layer.shadowRadius = 2.0;
+    subLine2.layer.shadowOffset = CGSizeMake(0, 1.0);
     [self.headerInfoLayer addSubview:subLine2];
 }
 
@@ -321,12 +326,11 @@
     self.shimmerLayer.endPoint = CGPointMake(1.0, 0.5);
     self.shimmerLayer.colors = @[
         (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor,
-        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.45].CGColor,
+        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.50].CGColor,
         (id)[UIColor colorWithWhite:1.0 alpha:0.0].CGColor
     ];
     self.shimmerLayer.locations = @[@0.0, @0.1, @0.2];
     
-    // Маскируем блик формой непрозрачных пикселей логотипа
     CALayer *maskLayer = [CALayer layer];
     maskLayer.contents = (id)self.metalLogoView.image.CGImage;
     maskLayer.frame = self.metalLogoView.bounds;
@@ -377,7 +381,7 @@
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     neverBtn.frame = CGRectMake(0, 114, actionsW, 26);
     [neverBtn setTitle:cfg.neverShowText forState:UIControlStateNormal];
-    [neverBtn setTitleColor:[UIColor colorWithRed:0.95 green:0.92 blue:0.85 alpha:0.85] forState:UIControlStateNormal];
+    [neverBtn setTitleColor:[UIColor colorWithRed:0.90 green:0.86 blue:0.80 alpha:0.80] forState:UIControlStateNormal];
     neverBtn.titleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
     [neverBtn addTarget:self action:@selector(neverShowAgain) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:neverBtn];
@@ -386,19 +390,21 @@
 - (UIButton *)createThemeButton:(NSString *)title frame:(CGRect)frame {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
     btn.frame = frame;
-    btn.backgroundColor = [UIColor colorWithRed:0.16 green:0.11 blue:0.08 alpha:0.95];
+    // Полупрозрачное темное стекло вместо глухого коричневого блока
+    btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.09 blue:0.07 alpha:0.75];
     [btn setTitle:title forState:UIControlStateNormal];
-    [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor colorWithRed:0.98 green:0.96 blue:0.92 alpha:1.0] forState:UIControlStateNormal];
     btn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
     btn.layer.cornerRadius = 14.0;
     
-    btn.layer.borderWidth = 0.8;
-    btn.layer.borderColor = [UIColor colorWithRed:0.42 green:0.32 blue:0.22 alpha:0.55].CGColor;
+    // Тонкая золотистая окантовка
+    btn.layer.borderWidth = 0.7;
+    btn.layer.borderColor = [UIColor colorWithRed:0.80 green:0.70 blue:0.55 alpha:0.40].CGColor;
     
     btn.layer.shadowColor = [UIColor blackColor].CGColor;
-    btn.layer.shadowOpacity = 0.35;
-    btn.layer.shadowRadius = 5.0;
-    btn.layer.shadowOffset = CGSizeMake(0, 3);
+    btn.layer.shadowOpacity = 0.40;
+    btn.layer.shadowRadius = 8.0;
+    btn.layer.shadowOffset = CGSizeMake(0, 4);
     
     [btn addTarget:self action:@selector(buttonTouchHaptic) forControlEvents:UIControlEventTouchDown];
     return btn;
@@ -413,7 +419,7 @@
     }
 }
 
-#pragma mark - Кинематографический зум (Ken Burns) & Хореография
+#pragma mark - Кинематографический зум & Хореография
 
 - (void)startKenBurnsEffect {
     [UIView animateWithDuration:18.0
@@ -425,7 +431,6 @@
 }
 
 - (void)prepareInitialEntryStates {
-    // Начальное смещение и прозрачность для плавного выката
     self.backgroundImageView.alpha = 0.0;
     self.vignetteLayer.opacity = 0.0;
     
@@ -443,13 +448,11 @@
 }
 
 - (void)executeEntranceChoreographyWithCompletion:(void(^)(void))completion {
-    // 0.0с: Мягкое проявление фона и виньетки
     [UIView animateWithDuration:0.85 delay:0.0 options:UIViewAnimationOptionCurveEaseOut animations:^{
         self.backgroundImageView.alpha = 1.0;
         self.vignetteLayer.opacity = 1.0;
     } completion:nil];
 
-    // 0.15с: Таблички мягко приземляются на пружине
     [UIView animateWithDuration:1.1 delay:0.15 usingSpringWithDamping:0.80 initialSpringVelocity:0.4 options:0 animations:^{
         self.leftPlaqueView.transform = CGAffineTransformIdentity;
         self.leftPlaqueView.alpha = 1.0;
@@ -457,7 +460,6 @@
         self.rightPlaqueView.alpha = 1.0;
     } completion:nil];
 
-    // 0.28с: Логотип и заголовок раскрываются с легким толчком
     [UIView animateWithDuration:1.0 delay:0.28 usingSpringWithDamping:0.75 initialSpringVelocity:0.6 options:0 animations:^{
         self.headerInfoLayer.transform = CGAffineTransformIdentity;
         self.headerInfoLayer.alpha = 1.0;
@@ -465,14 +467,13 @@
         if (completion) completion();
     }];
 
-    // 0.40с: Кнопки всплывают снизу
     [UIView animateWithDuration:0.9 delay:0.40 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
         self.bottomActionsLayer.transform = CGAffineTransformIdentity;
         self.bottomActionsLayer.alpha = 1.0;
     } completion:nil];
 }
 
-#pragma mark - Усиленный тактовый кардио-движок + Световой блик
+#pragma mark - Усиленный тактовый кардио-движок + Блик
 
 - (void)startHeartbeatCycle {
     if (self.heartbeatActive) return;
@@ -483,7 +484,6 @@
 - (void)performSynchronizedPulseStep {
     if (!self.heartbeatActive) return;
 
-    // 1. Анимация систолы
     CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
     pulse.values = @[@1.0, @1.08, @1.02, @1.05, @1.0];
     pulse.keyTimes = @[@0.0, @0.10, @0.18, @0.28, @1.0];
@@ -492,10 +492,8 @@
     pulse.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
     [self.metalLogoView.layer addAnimation:pulse forKey:@"welcome.japan.singleBeat"];
 
-    // 2. Световой блик по металлу в момент систолы
     [self triggerShimmerSweep];
 
-    // 3. Фаза 1 (0.00с): Первый мощный удар (Heavy на 100% мощности)
     [self.heavyFeedback prepare];
     if (@available(iOS 13.0, *)) {
         [self.heavyFeedback impactOccurredWithIntensity:1.0];
@@ -503,7 +501,6 @@
         [self.heavyFeedback impactOccurred];
     }
 
-    // 4. Фаза 2 (0.13с): Второй удар (Medium на 85% мощности)
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.13 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.heartbeatActive) return;
         [self.lightFeedback prepare];
@@ -514,13 +511,11 @@
         }
     });
 
-    // 5. Фаза 3 (1.15с): Прогрев катушки за 100 мс до удара
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.heartbeatActive) return;
         [self.heavyFeedback prepare];
     });
 
-    // 6. Фаза 4 (1.25с): Запуск следующего такта
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (self.heartbeatActive) {
             [self performSynchronizedPulseStep];
