@@ -6,6 +6,7 @@
 #import <UIKit/UIKit.h>
 
 @interface WelcomeViewController ()
+@property (nonatomic, strong) UIView *solidBackdropView;
 @property (nonatomic, strong) UIView *sceneContainer;
 @property (nonatomic, strong) UIImageView *backgroundImageView;
 @property (nonatomic, strong) CAGradientLayer *vignetteLayer;
@@ -21,8 +22,10 @@
 @property (nonatomic, strong) UIView *rightPlaqueView;
 
 @property (nonatomic, assign) BOOL heartbeatActive;
+@property (nonatomic, assign) BOOL isDismissing;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *heavyFeedback;
 @property (nonatomic, strong) UIImpactFeedbackGenerator *lightFeedback;
+@property (nonatomic, strong) UISelectionFeedbackGenerator *selectionFeedback;
 @end
 
 @implementation WelcomeViewController
@@ -85,12 +88,23 @@
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor blackColor];
     self.modalInPresentation = YES;
+    self.modalPresentationCapturesStatusBarAppearance = YES;
 
+    // 1. Непроницаемая глухая подложка (защита от белых экранов приложений)
+    self.solidBackdropView = [[UIView alloc] initWithFrame:self.view.bounds];
+    self.solidBackdropView.backgroundColor = [UIColor blackColor];
+    self.solidBackdropView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [self.view addSubview:self.solidBackdropView];
+
+    // Тактильные движки
     self.heavyFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleHeavy];
     self.lightFeedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
+    self.selectionFeedback = [[UISelectionFeedbackGenerator alloc] init];
     [self.heavyFeedback prepare];
     [self.lightFeedback prepare];
+    [self.selectionFeedback prepare];
 
+    // Контейнер сцены
     self.sceneContainer = [[UIView alloc] initWithFrame:CGRectInset(self.view.bounds, -45, -45)];
     self.sceneContainer.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.sceneContainer];
@@ -102,10 +116,11 @@
     [self setupBottomActions];
     [self applyMultiDepthParallax];
 
-    // Выносим блок кнопок поверх виньетки
-    [self.sceneContainer bringSubviewToFront:self.bottomActionsLayer];
-
     [self prepareInitialEntryStates];
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleLightContent;
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -114,7 +129,7 @@
     [self startKenBurnsEffect];
 
     [self executeEntranceChoreographyWithCompletion:^{
-        if ([WelcomeConfig sharedConfig].pulseEnabled) {
+        if ([WelcomeConfig sharedConfig].pulseEnabled && !self.isDismissing) {
             [self startHeartbeatCycle];
         }
     }];
@@ -128,7 +143,7 @@
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     if (self.vignetteLayer) {
-        self.vignetteLayer.frame = self.view.bounds;
+        self.vignetteLayer.frame = self.sceneContainer.bounds;
     }
 }
 
@@ -146,18 +161,19 @@
 }
 
 - (void)setupVignetteAndParticles {
+    // Виньетка кладется на фон и не глушит кнопки
     self.vignetteLayer = [CAGradientLayer layer];
     self.vignetteLayer.type = kCAGradientLayerRadial;
     self.vignetteLayer.colors = @[
         (id)[UIColor clearColor].CGColor,
         (id)[UIColor colorWithWhite:0.0 alpha:0.25].CGColor,
-        (id)[UIColor colorWithWhite:0.0 alpha:0.65].CGColor
+        (id)[UIColor colorWithWhite:0.0 alpha:0.70].CGColor
     ];
-    self.vignetteLayer.locations = @[@0.0, @0.65, @1.0];
+    self.vignetteLayer.locations = @[@0.0, @0.60, @1.0];
     self.vignetteLayer.startPoint = CGPointMake(0.5, 0.5);
     self.vignetteLayer.endPoint = CGPointMake(1.0, 1.0);
-    self.vignetteLayer.frame = self.view.bounds;
-    [self.view.layer insertSublayer:self.vignetteLayer above:self.sceneContainer.layer];
+    self.vignetteLayer.frame = self.sceneContainer.bounds;
+    [self.sceneContainer.layer insertSublayer:self.vignetteLayer above:self.backgroundImageView.layer];
 
     self.particleEmitter = [CAEmitterLayer layer];
     self.particleEmitter.emitterPosition = CGPointMake(self.view.bounds.size.width / 2.0, -20);
@@ -180,7 +196,7 @@
     sparkle.contents = (id)[self generateParticleDotImage].CGImage;
 
     self.particleEmitter.emitterCells = @[sparkle];
-    [self.sceneContainer.layer addSublayer:self.particleEmitter];
+    [self.sceneContainer.layer insertSublayer:self.particleEmitter above:self.vignetteLayer];
 }
 
 - (void)setupHeaderInfo {
@@ -244,8 +260,8 @@
     UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 168, headerW - 16, 22)];
     subLine2.text = cfg.storeSubtitleText;
     subLine2.textAlignment = NSTextAlignmentCenter;
-    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:15.5];
-    if (!storeFont) storeFont = [UIFont systemFontOfSize:15.5 weight:UIFontWeightSemibold];
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Bold" size:15.5];
+    if (!storeFont) storeFont = [UIFont boldSystemFontOfSize:15.5];
     subLine2.font = storeFont;
     subLine2.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
     subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -295,6 +311,20 @@
     plaqueBg.layer.shadowRadius = 14.0;
     plaqueBg.layer.shadowOffset = CGSizeMake(isRight ? -5 : 5, 9);
     [container addSubview:plaqueBg];
+
+    // 2. Направленная светотень: свет падает от центрального стеклянного блока
+    CAGradientLayer *lighting = [CAGradientLayer layer];
+    lighting.frame = container.bounds;
+    lighting.cornerRadius = 6.0;
+    lighting.startPoint = CGPointMake(isRight ? 0.0 : 1.0, 0.5); // свет падает от внутренней грани
+    lighting.endPoint   = CGPointMake(isRight ? 1.0 : 0.0, 0.5); // тень на внешней грани
+    lighting.colors = @[
+        (id)[UIColor colorWithRed:1.0 green:0.92 blue:0.75 alpha:0.18].CGColor, // теплый отблеск
+        (id)[UIColor clearColor].CGColor,
+        (id)[UIColor colorWithWhite:0.0 alpha:0.32].CGColor                      // мягкая тень сбоку
+    ];
+    lighting.locations = @[@0.0, @0.45, @1.0];
+    [container.layer addSublayer:lighting];
 
     CGFloat topPadding = 32.0;
     CGFloat bottomPadding = 30.0;
@@ -359,21 +389,20 @@
     CGFloat bottomY = screenH * 0.77;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
-    self.bottomActionsLayer.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
     [self.sceneContainer addSubview:self.bottomActionsLayer];
 
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    UIButton *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46)];
+    UIControl *tgBtn = [self createCustomGlassButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46)];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
 
-    UIButton *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46)];
+    UIControl *ghBtn = [self createCustomGlassButton:@"GitHub" frame:CGRectMake(btnW + btnSpacing, 0, btnW, 46)];
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    UIButton *contBtn = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48)];
+    UIControl *contBtn = [self createCustomGlassButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48)];
     [contBtn addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:contBtn];
 
@@ -392,51 +421,59 @@
     [self.bottomActionsLayer addSubview:neverBtn];
 }
 
-- (UIButton *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame {
-    UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-    btn.frame = frame;
-    btn.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
-    btn.backgroundColor = [UIColor colorWithRed:0.14 green:0.10 blue:0.08 alpha:0.88];
-    btn.layer.cornerRadius = 14.0;
-    btn.layer.borderWidth = 0.9;
-    btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
+- (UIControl *)createCustomGlassButton:(NSString *)title frame:(CGRect)frame {
+    UIControl *control = [[UIControl alloc] initWithFrame:frame];
+    control.backgroundColor = [UIColor colorWithRed:0.14 green:0.10 blue:0.08 alpha:0.88];
+    control.layer.cornerRadius = 14.0;
+    control.layer.borderWidth = 0.9;
+    control.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
     
-    btn.layer.shadowColor = [UIColor blackColor].CGColor;
-    btn.layer.shadowOpacity = 0.45;
-    btn.layer.shadowRadius = 8.0;
-    btn.layer.shadowOffset = CGSizeMake(0, 4);
+    control.layer.shadowColor = [UIColor blackColor].CGColor;
+    control.layer.shadowOpacity = 0.45;
+    control.layer.shadowRadius = 8.0;
+    control.layer.shadowOffset = CGSizeMake(0, 4);
 
-    // Шрифт и цвет один в один как у надписи GeraKStore на центральной плашке:
-    // Georgia-Medium 16pt, теплый золотистый оттенок (#F2DCB3) и мягкая тень
-    UILabel *label = [[UILabel alloc] initWithFrame:btn.bounds];
+    UILabel *label = [[UILabel alloc] initWithFrame:control.bounds];
     label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     label.text = title;
     label.textAlignment = NSTextAlignmentCenter;
     
-    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:16.0];
-    if (!storeFont) storeFont = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Bold" size:16.0];
+    if (!storeFont) storeFont = [UIFont boldSystemFontOfSize:16.0];
     label.font = storeFont;
     label.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
-    label.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
     
     label.layer.shadowColor = [UIColor blackColor].CGColor;
     label.layer.shadowOpacity = 0.60;
     label.layer.shadowRadius = 2.0;
     label.layer.shadowOffset = CGSizeMake(0, 1.0);
     label.userInteractionEnabled = NO;
-    [btn addSubview:label];
+    [control addSubview:label];
 
-    [btn addTarget:self action:@selector(buttonTouchHaptic) forControlEvents:UIControlEventTouchDown];
-    return btn;
+    // 3. Тактильное продавливание с аппаратным щелчком Selection
+    [control addTarget:self action:@selector(buttonTouchDownAnim:) forControlEvents:UIControlEventTouchDown];
+    [control addTarget:self action:@selector(buttonTouchUpAnim:) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
+
+    return control;
 }
 
-- (void)buttonTouchHaptic {
-    [self.heavyFeedback prepare];
-    if (@available(iOS 13.0, *)) {
-        [self.heavyFeedback impactOccurredWithIntensity:1.0];
-    } else {
-        [self.heavyFeedback impactOccurred];
-    }
+- (void)buttonTouchDownAnim:(UIControl *)btn {
+    [self.selectionFeedback prepare];
+    [self.selectionFeedback selectionChanged];
+
+    [UIView animateWithDuration:0.10 animations:^{
+        btn.transform = CGAffineTransformMakeScale(0.95, 0.95);
+        btn.alpha = 0.88;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.25].CGColor;
+    }];
+}
+
+- (void)buttonTouchUpAnim:(UIControl *)btn {
+    [UIView animateWithDuration:0.18 delay:0.0 usingSpringWithDamping:0.65 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        btn.transform = CGAffineTransformIdentity;
+        btn.alpha = 1.0;
+        btn.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.55].CGColor;
+    } completion:nil];
 }
 
 #pragma mark - Кинематографический зум & Хореография
@@ -493,16 +530,56 @@
     } completion:nil];
 }
 
+#pragma mark - Плавная кинематографичная хореография выхода (Exit Choreography)
+
+- (void)animateDismissalWithCompletion:(void(^)(void))completion {
+    if (self.isDismissing) return;
+    self.isDismissing = YES;
+
+    [self stopHeartbeatCycle];
+
+    // Мягкий финальный отклик Taptic Engine
+    [self.lightFeedback prepare];
+    if (@available(iOS 13.0, *)) {
+        [self.lightFeedback impactOccurredWithIntensity:0.65];
+    } else {
+        [self.lightFeedback impactOccurred];
+    }
+
+    [UIView animateWithDuration:0.28 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+        // Дощечки плавно разъезжаются в стороны и тают
+        self.leftPlaqueView.transform = CGAffineTransformMakeTranslation(-40, -15);
+        self.leftPlaqueView.alpha = 0.0;
+
+        self.rightPlaqueView.transform = CGAffineTransformMakeTranslation(40, -15);
+        self.rightPlaqueView.alpha = 0.0;
+
+        // Карточка деликатно уменьшается
+        self.headerInfoLayer.transform = CGAffineTransformMakeScale(0.92, 0.92);
+        self.headerInfoLayer.alpha = 0.0;
+
+        // Кнопки опускаются
+        self.bottomActionsLayer.transform = CGAffineTransformMakeTranslation(0, 30);
+        self.bottomActionsLayer.alpha = 0.0;
+
+        // Фон гаснет в черную подложку
+        self.backgroundImageView.alpha = 0.0;
+        self.vignetteLayer.opacity = 0.0;
+    } completion:^(BOOL finished) {
+        [self dismissViewControllerAnimated:NO completion:completion];
+    }];
+}
+
 #pragma mark - Усиленный тактовый кардио-движок + Блик
 
 - (void)startHeartbeatCycle {
-    if (self.heartbeatActive) return;
+    if (self.heartbeatActive || self.isDismissing) return;
     self.heartbeatActive = YES;
     [self performSynchronizedPulseStep];
 }
 
 - (void)performSynchronizedPulseStep {
-    if (!self.heartbeatActive) return;
+    if (!self.heartbeatActive || self.isDismissing) return;
 
     CAKeyframeAnimation *pulse = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
     pulse.values = @[@1.0, @1.08, @1.02, @1.05, @1.0];
@@ -522,7 +599,7 @@
     }
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.13 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (!self.heartbeatActive) return;
+        if (!self.heartbeatActive || self.isDismissing) return;
         [self.lightFeedback prepare];
         if (@available(iOS 13.0, *)) {
             [self.lightFeedback impactOccurredWithIntensity:0.85];
@@ -532,12 +609,12 @@
     });
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (!self.heartbeatActive) return;
+        if (!self.heartbeatActive || self.isDismissing) return;
         [self.heavyFeedback prepare];
     });
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (self.heartbeatActive) {
+        if (self.heartbeatActive && !self.isDismissing) {
             [self performSynchronizedPulseStep];
         }
     });
@@ -573,27 +650,21 @@
 }
 
 - (void)openTelegram {
-    [self buttonTouchHaptic];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[WelcomeConfig sharedConfig].telegramUrl] options:@{} completionHandler:nil];
 }
 
 - (void)openGithub {
-    [self buttonTouchHaptic];
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[WelcomeConfig sharedConfig].githubUrl] options:@{} completionHandler:nil];
 }
 
 - (void)dismissScreen {
-    [self buttonTouchHaptic];
-    [self stopHeartbeatCycle];
-    [self dismissViewControllerAnimated:YES completion:nil];
+    [self animateDismissalWithCompletion:nil];
 }
 
 - (void)neverShowAgain {
-    [self buttonTouchHaptic];
-    [self stopHeartbeatCycle];
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"com.gkuhtov.WelcomeToJapan.hasSeenWelcome"];
     [[NSUserDefaults standardUserDefaults] synchronize];
-    [self dismissViewControllerAnimated:YES completion:nil];
+    [self animateDismissalWithCompletion:nil];
 }
 
 @end
