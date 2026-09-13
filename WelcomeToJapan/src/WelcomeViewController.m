@@ -97,8 +97,8 @@
 
     [self setupBackground];
     [self setupVignetteAndParticles];
-    [self setupPlaques];
     [self setupHeaderInfo];
+    [self setupPlaques];
     [self setupBottomActions];
     [self applyMultiDepthParallax];
 
@@ -180,6 +180,81 @@
     [self.sceneContainer.layer addSublayer:self.particleEmitter];
 }
 
+- (void)setupHeaderInfo {
+    WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
+    CGFloat screenW = self.view.bounds.size.width;
+    CGFloat screenH = self.view.bounds.size.height;
+
+    CGFloat headerW = screenW - 160;
+    CGFloat headerH = 240;
+    CGFloat startY = screenH * 0.38;
+
+    self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
+    [self.sceneContainer addSubview:self.headerInfoLayer];
+
+    // Стеклянная подложка
+    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+    UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+    glassView.frame = CGRectMake(0, 95, headerW, 120);
+    glassView.layer.cornerRadius = 20.0;
+    glassView.layer.borderWidth = 0.8;
+    glassView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
+    glassView.clipsToBounds = YES;
+    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.25];
+    [self.headerInfoLayer addSubview:glassView];
+
+    UIImage *rawLogo = [self imageFromBase64:kStoreLogoBase64] ?: [UIImage imageNamed:@"store_logo.png"];
+    UIImage *cleanLogo = [self removeBlackBackground:rawLogo];
+
+    CGFloat logoW = 230.0;
+    CGFloat logoH = 115.0;
+    // Поднимаем логотип до Y = -24, чтобы он не наползал на плашку и заголовок
+    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, -24, logoW, logoH)];
+    self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
+    self.metalLogoView.image = cleanLogo;
+    self.metalLogoView.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.metalLogoView.layer.shadowOpacity = 0.70;
+    self.metalLogoView.layer.shadowRadius = 18.0;
+    self.metalLogoView.layer.shadowOffset = CGSizeMake(0, 10);
+    [self.headerInfoLayer addSubview:self.metalLogoView];
+
+    [self setupLogoShimmerEffect];
+
+    // Центрируем текст внутри высоты плашки (Y: 95 до 215)
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 110, headerW - 16, 28)];
+    title.text = cfg.headlineText;
+    title.textAlignment = NSTextAlignmentCenter;
+    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:22.0];
+    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:21.5];
+    title.font = serifFont;
+    title.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.93 alpha:1.0];
+    title.layer.shadowColor = [UIColor blackColor].CGColor;
+    title.layer.shadowOpacity = 0.60;
+    title.layer.shadowRadius = 3.0;
+    title.layer.shadowOffset = CGSizeMake(0, 1.5);
+    [self.headerInfoLayer addSubview:title];
+
+    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(8, 144, headerW - 16, 18)];
+    subLine1.text = cfg.sublineText;
+    subLine1.textAlignment = NSTextAlignmentCenter;
+    subLine1.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightMedium];
+    subLine1.textColor = [UIColor colorWithRed:0.88 green:0.83 blue:0.75 alpha:0.90];
+    [self.headerInfoLayer addSubview:subLine1];
+
+    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 168, headerW - 16, 22)];
+    subLine2.text = cfg.storeSubtitleText;
+    subLine2.textAlignment = NSTextAlignmentCenter;
+    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:15.5];
+    if (!storeFont) storeFont = [UIFont systemFontOfSize:15.5 weight:UIFontWeightSemibold];
+    subLine2.font = storeFont;
+    subLine2.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
+    subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
+    subLine2.layer.shadowOpacity = 0.50;
+    subLine2.layer.shadowRadius = 2.0;
+    subLine2.layer.shadowOffset = CGSizeMake(0, 1.0);
+    [self.headerInfoLayer addSubview:subLine2];
+}
+
 - (void)setupPlaques {
     WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
     CGFloat screenW = self.view.bounds.size.width;
@@ -191,19 +266,21 @@
     UIImage *rawPlaques = [self imageFromBase64:kPlaquesBase64] ?: [UIImage imageNamed:@"plaques.png"];
     UIImage *singlePlaque = [self extractSinglePlaque:rawPlaques];
 
+    // Выравниваем центр дощечек строго по центру стеклянной плашки
+    CGFloat cardCenterY = (screenH * 0.38) + 95 + 60; // startY + отступ плашки + половина высоты
+    CGFloat plaqueY = cardCenterY - (cfg.plaqueSize.height / 2.0) + 45;
+
     CGFloat leftX = cfg.leftPlaqueOrigin.x + 45;
-    CGFloat leftY = (screenH * cfg.leftPlaqueOrigin.y) + 45;
     self.leftPlaqueView = [self buildPlaqueViewWithImage:singlePlaque
                                                    text:cfg.leftPlaqueText
-                                                  frame:CGRectMake(leftX, leftY, cfg.plaqueSize.width, cfg.plaqueSize.height)
+                                                  frame:CGRectMake(leftX, plaqueY, cfg.plaqueSize.width, cfg.plaqueSize.height)
                                                 isRight:NO];
     [self.plaquesLayer addSubview:self.leftPlaqueView];
 
     CGFloat rightX = screenW - cfg.rightPlaqueOrigin.x - cfg.plaqueSize.width + 45;
-    CGFloat rightY = (screenH * cfg.rightPlaqueOrigin.y) + 45;
     self.rightPlaqueView = [self buildPlaqueViewWithImage:singlePlaque
                                                     text:cfg.rightPlaqueText
-                                                   frame:CGRectMake(rightX, rightY, cfg.plaqueSize.width, cfg.plaqueSize.height)
+                                                   frame:CGRectMake(rightX, plaqueY, cfg.plaqueSize.width, cfg.plaqueSize.height)
                                                  isRight:YES];
     [self.plaquesLayer addSubview:self.rightPlaqueView];
 }
@@ -239,78 +316,6 @@
     [container addSubview:lbl];
 
     return container;
-}
-
-- (void)setupHeaderInfo {
-    WelcomeConfig *cfg = [WelcomeConfig sharedConfig];
-    CGFloat screenW = self.view.bounds.size.width;
-    CGFloat screenH = self.view.bounds.size.height;
-
-    CGFloat headerW = screenW - 160;
-    CGFloat headerH = 240;
-    CGFloat startY = screenH * 0.38;
-
-    self.headerInfoLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - headerW) / 2.0 + 45, startY + 45, headerW, headerH)];
-    [self.sceneContainer addSubview:self.headerInfoLayer];
-
-    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    glassView.frame = CGRectMake(0, 95, headerW, 120);
-    glassView.layer.cornerRadius = 20.0;
-    glassView.layer.borderWidth = 0.8;
-    glassView.layer.borderColor = [UIColor colorWithRed:0.92 green:0.82 blue:0.65 alpha:0.45].CGColor;
-    glassView.clipsToBounds = YES;
-    glassView.backgroundColor = [UIColor colorWithRed:0.10 green:0.07 blue:0.05 alpha:0.25];
-    [self.headerInfoLayer addSubview:glassView];
-
-    UIImage *rawLogo = [self imageFromBase64:kStoreLogoBase64] ?: [UIImage imageNamed:@"store_logo.png"];
-    UIImage *cleanLogo = [self removeBlackBackground:rawLogo];
-
-    CGFloat logoW = 230.0;
-    CGFloat logoH = 115.0;
-    self.metalLogoView = [[UIImageView alloc] initWithFrame:CGRectMake((headerW - logoW) / 2.0, 5, logoW, logoH)];
-    self.metalLogoView.contentMode = UIViewContentModeScaleAspectFit;
-    self.metalLogoView.image = cleanLogo;
-    self.metalLogoView.layer.shadowColor = [UIColor blackColor].CGColor;
-    self.metalLogoView.layer.shadowOpacity = 0.70;
-    self.metalLogoView.layer.shadowRadius = 18.0;
-    self.metalLogoView.layer.shadowOffset = CGSizeMake(0, 10);
-    [self.headerInfoLayer addSubview:self.metalLogoView];
-
-    [self setupLogoShimmerEffect];
-
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 114, headerW - 16, 30)];
-    title.text = cfg.headlineText;
-    title.textAlignment = NSTextAlignmentCenter;
-    UIFont *serifFont = [UIFont fontWithName:@"Georgia-Bold" size:22.5];
-    if (!serifFont) serifFont = [UIFont boldSystemFontOfSize:22];
-    title.font = serifFont;
-    title.textColor = [UIColor colorWithRed:0.98 green:0.96 blue:0.93 alpha:1.0];
-    title.layer.shadowColor = [UIColor blackColor].CGColor;
-    title.layer.shadowOpacity = 0.60;
-    title.layer.shadowRadius = 3.0;
-    title.layer.shadowOffset = CGSizeMake(0, 1.5);
-    [self.headerInfoLayer addSubview:title];
-
-    UILabel *subLine1 = [[UILabel alloc] initWithFrame:CGRectMake(8, 147, headerW - 16, 18)];
-    subLine1.text = cfg.sublineText;
-    subLine1.textAlignment = NSTextAlignmentCenter;
-    subLine1.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightMedium];
-    subLine1.textColor = [UIColor colorWithRed:0.88 green:0.83 blue:0.75 alpha:0.90];
-    [self.headerInfoLayer addSubview:subLine1];
-
-    UILabel *subLine2 = [[UILabel alloc] initWithFrame:CGRectMake(8, 169, headerW - 16, 24)];
-    subLine2.text = cfg.storeSubtitleText;
-    subLine2.textAlignment = NSTextAlignmentCenter;
-    UIFont *storeFont = [UIFont fontWithName:@"Georgia-Medium" size:15.5];
-    if (!storeFont) storeFont = [UIFont systemFontOfSize:15.5 weight:UIFontWeightSemibold];
-    subLine2.font = storeFont;
-    subLine2.textColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:1.0];
-    subLine2.layer.shadowColor = [UIColor blackColor].CGColor;
-    subLine2.layer.shadowOpacity = 0.50;
-    subLine2.layer.shadowRadius = 2.0;
-    subLine2.layer.shadowOffset = CGSizeMake(0, 1.0);
-    [self.headerInfoLayer addSubview:subLine2];
 }
 
 - (void)setupLogoShimmerEffect {
@@ -352,7 +357,7 @@
 
     CGFloat actionsW = screenW - 80;
     CGFloat actionsH = 160;
-    // Оставляем исходное нижнее положение
+    // Кнопки зафиксированы на исходной нижней позиции
     CGFloat bottomY = screenH * 0.77;
 
     self.bottomActionsLayer = [[UIView alloc] initWithFrame:CGRectMake((screenW - actionsW) / 2.0 + 45, bottomY + 45, actionsW, actionsH)];
@@ -373,12 +378,13 @@
     [contBtn addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:contBtn];
 
+    // Предельно незаметная кнопка «Больше не показывать»
     UIButton *neverBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    neverBtn.frame = CGRectMake(0, 114, actionsW, 26);
+    neverBtn.frame = CGRectMake(0, 116, actionsW, 22);
     
     NSAttributedString *attrNever = [[NSAttributedString alloc] initWithString:cfg.neverShowText attributes:@{
-        NSForegroundColorAttributeName: [UIColor colorWithRed:0.92 green:0.88 blue:0.82 alpha:0.85],
-        NSFontAttributeName: [UIFont systemFontOfSize:13 weight:UIFontWeightMedium]
+        NSForegroundColorAttributeName: [UIColor colorWithWhite:1.0 alpha:0.35],
+        NSFontAttributeName: [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular]
     }];
     [neverBtn setAttributedTitle:attrNever forState:UIControlStateNormal];
     [neverBtn addTarget:self action:@selector(neverShowAgain) forControlEvents:UIControlEventTouchUpInside];
