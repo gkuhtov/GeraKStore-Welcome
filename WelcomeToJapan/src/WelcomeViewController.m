@@ -592,7 +592,7 @@
     } completion:nil];
 }
 
-#pragma mark - Нативное раскрытие Dynamic Island (Apple-way: рост вниз без срезов)
+#pragma mark - Бесшовный Dynamic Island Morphing (Pixel-Perfect под камерой)
 
 - (void)triggerSeamlessIslandMorphing {
     UIWindow *targetWindow = nil;
@@ -614,17 +614,17 @@
         topInset = targetWindow.safeAreaInsets.top;
     }
 
-    // Исходные координаты физического островка в покое
+    // Исходные координаты физического выреза (125 × 37 pt на Y = 11 pt)
     CGFloat initialW = 125.0;
     CGFloat initialH = 37.0;
     CGFloat initialY = (topInset > 50) ? 11.0 : 10.0;
     CGFloat initialX = (screenW - initialW) / 2.0;
 
-    // Параметры раскрытия: остров расширяется в стороны и ВЫТЯГИВАЕТСЯ ВНИЗ до 64 pt
+    // Раскрытие: ширина 360 pt, высота 72 pt (вытягивается вниз под аппаратный глазок)
     CGFloat expandedW = MIN(screenW - 24.0, 360.0);
-    CGFloat expandedH = (topInset > 50) ? 64.0 : 54.0;
+    CGFloat expandedH = (topInset > 50) ? 72.0 : 56.0;
     CGFloat expandedX = (screenW - expandedW) / 2.0;
-    CGFloat expandedY = initialY; // верхняя кромка держится строго на вырезе камеры
+    CGFloat expandedY = initialY;
 
     UIView *islandContainer = [[UIView alloc] initWithFrame:CGRectMake(initialX, initialY, initialW, initialH)];
     islandContainer.backgroundColor = [UIColor blackColor];
@@ -639,15 +639,15 @@
     islandContainer.clipsToBounds = YES;
     islandContainer.userInteractionEnabled = NO;
 
-    // Текст сидит в нижней чистой половине острова — физический глазок камеры больше ничего не режет
-    CGFloat labelH = 26.0;
-    CGFloat labelY = expandedH - labelH - 8.0;
+    // Строка садится строго ниже камеры (начиная с 43 pt от верха контейнера)
+    CGFloat labelY = (topInset > 50) ? 43.0 : 26.0;
+    CGFloat labelH = 22.0;
     UILabel *toastLabel = [[UILabel alloc] initWithFrame:CGRectMake(14.0, labelY, expandedW - 28.0, labelH)];
     toastLabel.text = @"🤝 Чисто по-братски, с тебя шаурма";
     toastLabel.textAlignment = NSTextAlignmentCenter;
     
-    UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:14.0];
-    if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:14.0];
+    UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:13.5];
+    if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:13.5];
     toastLabel.font = toastFont;
     toastLabel.textColor = [UIColor colorWithRed:0.98 green:0.95 blue:0.88 alpha:1.0];
     toastLabel.alpha = 0.0;
@@ -656,15 +656,15 @@
 
     [targetWindow addSubview:islandContainer];
 
-    // Фаза 1: Остров вытягивается вниз и в стороны на пружине
+    // Фаза 1: Остров вытягивается вниз и в стороны
     [UIView animateWithDuration:0.48 delay:0.04 usingSpringWithDamping:0.74 initialSpringVelocity:0.7 options:0 animations:^{
         islandContainer.frame = CGRectMake(expandedX, expandedY, expandedW, expandedH);
-        islandContainer.layer.cornerRadius = 28.0;
+        islandContainer.layer.cornerRadius = expandedH / 2.0;
         islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.95].CGColor;
         islandContainer.layer.shadowRadius = 16.0;
     } completion:nil];
 
-    // Фаза 2: Проявление текста в чистой нижней зоне + тактильный щелчок
+    // Фаза 2: Проявление надписи строго в чистой нижней зоне острова
     [UIView animateWithDuration:0.25 delay:0.20 options:UIViewAnimationOptionCurveEaseOut animations:^{
         toastLabel.alpha = 1.0;
         toastLabel.transform = CGAffineTransformIdentity;
@@ -672,7 +672,7 @@
         [self.selectionFeedback prepare];
         [self.selectionFeedback selectionChanged];
 
-        // Фаза 3: Показ 2.8 сек, затем текст гаснет и остров втягивается обратно снизу вверх
+        // Фаза 3: Висит 2.8 сек, затем аккуратно втягивается обратно в вырез камеры
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [UIView animateWithDuration:0.14 animations:^{
                 toastLabel.alpha = 0.0;
