@@ -453,7 +453,6 @@
     CGFloat btnSpacing = 12.0;
     CGFloat btnW = (actionsW - btnSpacing) / 2.0;
     
-    // Кнопки соцсетей в стиле центральной карточки (матовый тёмный блюр + золотой кант)
     UIControl *tgBtn = [self createCardThemedButton:@"Telegram" frame:CGRectMake(0, 0, btnW, 46) fontSize:16.0];
     [tgBtn addTarget:self action:@selector(openTelegram) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:tgBtn];
@@ -462,7 +461,6 @@
     [ghBtn addTarget:self action:@selector(openGithub) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:ghBtn];
 
-    // Кнопка «Продолжить» в том же стиле
     self.continueButtonControl = [self createCardThemedButton:cfg.continueButtonText frame:CGRectMake(0, 56, actionsW, 48) fontSize:16.0];
     [self.continueButtonControl addTarget:self action:@selector(dismissScreen) forControlEvents:UIControlEventTouchUpInside];
     [self.bottomActionsLayer addSubview:self.continueButtonControl];
@@ -490,7 +488,6 @@
     control.layer.allowsEdgeAntialiasing = YES;
     control.clipsToBounds = YES;
 
-    // Встроенный тёмный блюр как на центральном блоке
     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
     UIVisualEffectView *glassView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
     glassView.frame = control.bounds;
@@ -595,7 +592,7 @@
     } completion:nil];
 }
 
-#pragma mark - Бесшовный Dynamic Island Morphing (Apple-style)
+#pragma mark - Нативное раскрытие Dynamic Island (Apple-way: рост вниз без срезов)
 
 - (void)triggerSeamlessIslandMorphing {
     UIWindow *targetWindow = nil;
@@ -617,38 +614,40 @@
         topInset = targetWindow.safeAreaInsets.top;
     }
 
-    // Истинные аппаратные координаты острова на iPhone 14 Pro / 15 / 16
+    // Исходные координаты физического островка в покое
     CGFloat initialW = 125.0;
     CGFloat initialH = 37.0;
     CGFloat initialY = (topInset > 50) ? 11.0 : 10.0;
     CGFloat initialX = (screenW - initialW) / 2.0;
 
-    // Финальная ширина при раскрытии
-    CGFloat expandedW = MIN(screenW - 50.0, 325.0);
-    CGFloat expandedH = 42.0;
+    // Параметры раскрытия: остров расширяется в стороны и ВЫТЯГИВАЕТСЯ ВНИЗ до 64 pt
+    CGFloat expandedW = MIN(screenW - 24.0, 360.0);
+    CGFloat expandedH = (topInset > 50) ? 64.0 : 54.0;
     CGFloat expandedX = (screenW - expandedW) / 2.0;
-    CGFloat expandedY = initialY; // остров расширяется прямо из физического выреза
+    CGFloat expandedY = initialY; // верхняя кромка держится строго на вырезе камеры
 
-    // Единый контейнер острова (чистый чёрный глянец, точно закрывающий сенсоры камеры)
     UIView *islandContainer = [[UIView alloc] initWithFrame:CGRectMake(initialX, initialY, initialW, initialH)];
     islandContainer.backgroundColor = [UIColor blackColor];
     islandContainer.layer.cornerRadius = initialH / 2.0;
-    islandContainer.layer.borderWidth = 0.8;
-    islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.85].CGColor;
-    islandContainer.layer.shadowColor = [UIColor colorWithRed:1.0 green:0.88 blue:0.65 alpha:0.85].CGColor;
-    islandContainer.layer.shadowRadius = 12.0;
-    islandContainer.layer.shadowOpacity = 0.80;
+    islandContainer.layer.borderWidth = 0.9;
+    islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.80].CGColor;
+    islandContainer.layer.shadowColor = [UIColor colorWithRed:1.0 green:0.88 blue:0.65 alpha:0.75].CGColor;
+    islandContainer.layer.shadowRadius = 14.0;
+    islandContainer.layer.shadowOpacity = 0.85;
     islandContainer.layer.shadowOffset = CGSizeZero;
     islandContainer.layer.allowsEdgeAntialiasing = YES;
     islandContainer.clipsToBounds = YES;
     islandContainer.userInteractionEnabled = NO;
 
-    UILabel *toastLabel = [[UILabel alloc] initWithFrame:CGRectMake(12, 0, expandedW - 24, expandedH)];
+    // Текст сидит в нижней чистой половине острова — физический глазок камеры больше ничего не режет
+    CGFloat labelH = 26.0;
+    CGFloat labelY = expandedH - labelH - 8.0;
+    UILabel *toastLabel = [[UILabel alloc] initWithFrame:CGRectMake(14.0, labelY, expandedW - 28.0, labelH)];
     toastLabel.text = @"🤝 Чисто по-братски, с тебя шаурма";
     toastLabel.textAlignment = NSTextAlignmentCenter;
     
-    UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:13.5];
-    if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:13.5];
+    UIFont *toastFont = [UIFont fontWithName:@"Georgia-Bold" size:14.0];
+    if (!toastFont) toastFont = [UIFont boldSystemFontOfSize:14.0];
     toastLabel.font = toastFont;
     toastLabel.textColor = [UIColor colorWithRed:0.98 green:0.95 blue:0.88 alpha:1.0];
     toastLabel.alpha = 0.0;
@@ -657,30 +656,30 @@
 
     [targetWindow addSubview:islandContainer];
 
-    // Фаза 1: Расширение острова из физического контура (Morphing Expand)
-    [UIView animateWithDuration:0.45 delay:0.05 usingSpringWithDamping:0.72 initialSpringVelocity:0.7 options:0 animations:^{
+    // Фаза 1: Остров вытягивается вниз и в стороны на пружине
+    [UIView animateWithDuration:0.48 delay:0.04 usingSpringWithDamping:0.74 initialSpringVelocity:0.7 options:0 animations:^{
         islandContainer.frame = CGRectMake(expandedX, expandedY, expandedW, expandedH);
-        islandContainer.layer.cornerRadius = expandedH / 2.0;
+        islandContainer.layer.cornerRadius = 28.0;
         islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.95].CGColor;
         islandContainer.layer.shadowRadius = 16.0;
     } completion:nil];
 
-    // Фаза 2: Проявление текста на пике раскрытия + щелчок Taptic Engine
-    [UIView animateWithDuration:0.25 delay:0.18 options:UIViewAnimationOptionCurveEaseOut animations:^{
+    // Фаза 2: Проявление текста в чистой нижней зоне + тактильный щелчок
+    [UIView animateWithDuration:0.25 delay:0.20 options:UIViewAnimationOptionCurveEaseOut animations:^{
         toastLabel.alpha = 1.0;
         toastLabel.transform = CGAffineTransformIdentity;
     } completion:^(BOOL finished) {
         [self.selectionFeedback prepare];
         [self.selectionFeedback selectionChanged];
 
-        // Фаза 3: Текст висит 2.8 сек, затем остров втягивается обратно в вырез (Morphing Collapse)
+        // Фаза 3: Показ 2.8 сек, затем текст гаснет и остров втягивается обратно снизу вверх
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:0.15 animations:^{
+            [UIView animateWithDuration:0.14 animations:^{
                 toastLabel.alpha = 0.0;
                 toastLabel.transform = CGAffineTransformMakeScale(0.80, 0.80);
             }];
 
-            [UIView animateWithDuration:0.38 delay:0.08 usingSpringWithDamping:0.85 initialSpringVelocity:0.4 options:0 animations:^{
+            [UIView animateWithDuration:0.38 delay:0.06 usingSpringWithDamping:0.85 initialSpringVelocity:0.4 options:0 animations:^{
                 islandContainer.frame = CGRectMake(initialX, initialY, initialW, initialH);
                 islandContainer.layer.cornerRadius = initialH / 2.0;
                 islandContainer.layer.borderColor = [UIColor colorWithRed:0.95 green:0.86 blue:0.70 alpha:0.0].CGColor;
@@ -723,7 +722,6 @@
         self.backgroundImageView.alpha = 0.0;
         self.vignetteLayer.opacity = 0.0;
     } completion:^(BOOL finished) {
-        // Запуск бесшовного морфинга Dynamic Island
         [self triggerSeamlessIslandMorphing];
         [self dismissViewControllerAnimated:NO completion:completion];
     }];
